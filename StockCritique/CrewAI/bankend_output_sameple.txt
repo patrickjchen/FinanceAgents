@@ -1,0 +1,122 @@
+[FinanceAgent] Companies: ['apple', 'google']
+[FinanceAgent] Processing company: apple
+[GeneralAgent] Received query at 2025-05-28 01:03:48.654334: what were Apple and Google stock prices and financial performance?
+[RedditAgent] Companies: ['apple', 'google'], Query: what were Apple and Google stock prices and financial performance?
+[RedditAgent] Searching posts for company: apple
+[RedditAgent] _get_recent_posts: Searching for 'apple' since 2025-04-28 05:03:48.654334
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_recent_posts: Returning 3 posts for 'apple'
+[RedditAgent] Found 3 filtered posts for apple
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 10 comments for post 'Cramer tonight?'
+[RedditAgent] Post 'Cramer tonight?' has 10 comments
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 6 comments for post '35% CAGR Since 2022 - Stock Picking Port'
+[RedditAgent] Post '35% CAGR Since 2022 - Stock Picking Port' has 6 comments
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 10 comments for post 'Title: Trump Delays Tariffs on the EU, Boosting Global Markets'
+[RedditAgent] Post 'Title: Trump Delays Tariffs on the EU, Boosting Global Markets' has 10 comments
+[RedditAgent] Searching posts for company: google
+[RedditAgent] _get_recent_posts: Searching for 'google' since 2025-04-28 05:03:48.654334
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_recent_posts: Returning 3 posts for 'google'
+[RedditAgent] Found 3 filtered posts for google
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 1 comments for post 'Nvidia's Long-Term Prospects Remain Terrific - I'm going to ignore Q1-earnings noise.'
+[RedditAgent] Post 'Nvidia's Long-Term Prospects Remain Terrific - I'm going to ignore Q1-earnings noise.' has 1 comments
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 10 comments for post 'r/Stocks Daily Discussion Monday - May 26, 2025'
+[RedditAgent] Post 'r/Stocks Daily Discussion Monday - May 26, 2025' has 10 comments
+It appears that you are using PRAW in an asynchronous environment.
+It is strongly recommended to use Async PRAW: https://asyncpraw.readthedocs.io.
+See https://praw.readthedocs.io/en/latest/getting_started/multiple_instances.html#discord-bots-and-asynchronous-environments for more info.
+
+[RedditAgent] _get_comments: Got 7 comments for post 'Found "Investors Stock Fund Inc" Capital Stock Certificate From 1956'
+[RedditAgent] Post 'Found "Investors Stock Fund Inc" Capital Stock Certificate From 1956' has 7 comments
+[FinanceAgent] Processing company: google
+There is no internal files about the google.
+[FinanceAgent] Final response_data: [{'company': 'apple', 'summaries': [{'file_name': 'Unknown', 'summary': "Key Financial Data Summary:\n- Apple Inc. has shown strong stock performance over the past five years, with a significant increase in cumulative total shareholder return.\n- The stock price of Apple Inc. has increased from $100 in September 2019 to $430 in September 2024.\n- In comparison, the S&P 500 Index and the Dow Jones U.S. Technology Supersector Index have shown lower cumulative total returns over the same period.\n\nProfessional Summary:\nOver the past five years, Apple Inc. has outperformed the S&P 500 Index and the Dow Jones U.S. Technology Supersector Index in terms of cumulative total shareholder return. Apple's stock price has shown strong growth, increasing from $100 in September 2019 to $430 in September 2024. This demonstrates Apple's solid financial performance and investment potential compared to its industry peers.", 'key_data': {}}, {'file_name': 'Unknown', 'summary': "In the fiscal year ending September 28, 2024, Apple reported total net sales of $391.0 billion, consisting of $294.9 billion from products and $96.2 billion from services. The company had a gross margin of $180.7 billion and operating income of $123.2 billion. Net income for the year was $93.7 billion, resulting in earnings per share of $6.11. Overall, Apple's financial performance remained strong, with steady revenue growth and solid profitability.", 'key_data': {'Operating Income': '123,216'}}, {'file_name': 'Unknown', 'summary': "The key financial data for Apple Inc. for the year ended September 28, 2024, includes a net income of $93.736 billion. The consolidated statements of shareholders' equity show total shareholders' equity beginning balances of $62.146 billion and ending balances of $83.276 billion. Retained earnings show a beginning balance of $(214) million and an ending balance of $(19.154) million.\n\nOverall, Apple Inc. has reported a strong financial performance with significant increases in shareholders' equity and a healthy net income figure. The company has also been active in issuing common stock, repurchasing shares, and providing dividends to shareholders.", 'key_data': {'Net Income': '93,736'}}]}]
+{
+  "router": "RouterAgent",
+  "started_timestamp": "2025-05-28T01:03:43.655674",
+  "companies": [
+    "apple",
+    "google"
+  ],
+  "tickers": [
+    "AAPL",
+    "GOOGL"
+  ],
+  "sub_agents": [
+    "RedditAgent",
+    "FinanceAgent",
+    "YahooAgent",
+    "SECAgent",
+    "GeneralAgent"
+  ],
+  "status": "success",
+  "completed_timestamp": "2025-05-28T01:03:56.055683"
+}
+[main.py] Final combined response to frontend:
+RedditAgent:
+Reddit agent "stock market sentiment analysis":
+
+For Apple:
+- Post on Cramer's show with mixed comments on his performance.
+- Post on stock picking portfolio with returns of 35% CAGR since 2022.
+- Post on Trump delaying tariffs on EU impacting markets positively.
+
+For Google:
+- Post on remaining bullish on Nvidia despite Q1 earnings noise.
+
+Overall sentiment analysis:
+- Average sentiment for Apple-related posts: 0.0918.
+- Average sentiment for Google-related posts: -0.1679.
+
+(Source: Reddit agent response)
+
+FinanceAgent:
+Finance agent response summary by Agent Smith:
+
+- Apple Inc.'s stock performance has been strong over the past five years, with a significant increase in cumulative total shareholder return.
+- In September 2019, Apple's stock price was $100, and it increased to $430 in September 2024.
+- In the fiscal year ending September 28, 2024, Apple reported total net sales of $391.0 billion, with $294.9 billion from products and $96.2 billion from services.
+- Apple had a gross margin of $180.7 billion, operating income of $123.2 billion, and a net income of $93.7 billion.
+- Shareholders' equity for Apple had beginning balances of $62.146 billion and ending balances of $83.276 billion.
+- Retained earnings had a beginning balance of $(214) million and an ending balance of $(19.154) million.    
+- Apple Inc. has shown steady revenue growth, solid profitability, and a strong financial performance.       
+
+YahooAgent:
+The Yahoo agent provided real-time stock price data per company in the last 30 days, but an error occurred due to rate limiting. The summary includes important details about stock prices and trends, which can be accessed once the rate limit is resolved.
+
+SecAgent:
+Summary:
+SEC agent response includes financial information from public companies like Apple and Google. Key data such as revenue and net income are found in the provided files for the respective time periods. The files contain 10-K annual reports for 2023 and 10-Q quarterly reports for Q1 2024. The reports show revenue growth for both companies and net income details for the specified period.
+
+Agent Name:
+SEC Agent
+
+GeneralAgent:
+{'general': "GeneralAgent Response\nQuestion: what were Apple and Google stock prices and financial performance?\n\nI'm sorry, but I am unable to provide real-time stock prices or financial performance data. I recommend checking a reliable financial news website or app for this information."}
+INFO:     127.0.0.1:54088 - "POST /query HTTP/1.1" 200 OK

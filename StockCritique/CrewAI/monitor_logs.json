@@ -1,0 +1,10 @@
+[
+  {
+    "timestamp": "2025-11-15T12:00:48.895511",
+    "agent": "GeneralAgent",
+    "status": "Received query",
+    "error": "Timestamp: 2025-11-15 12:00:48.895195, Query: tell me about google stock"
+  }
+]{"agent": "GeneralAgent", "started_timestamp": "2025-11-15T12:00:48.895195", "response": "GeneralAgent Response\nQuestion: tell me about google stock\n\nI'm sorry, but I am unable to provide real-time information on specific stock prices. I recommend checking a financial news website or using a stock market app for the most up-to-date information on Google's stock.", "completed_timestamp": "2025-11-15T12:00:50.381913", "status": "success"}
+{"agent": "YahooAgent", "started_timestamp": "2025-11-15T12:00:48.865617", "response": [{"ticker": "GOOGL", "statistics": {"min_close": 250.4600067138672, "max_close": 291.30999755859375, "mean_close": 271.0313057277514, "std_dev_30d": 14.34317766558415, "percent_change_30d": 10.110347371322083, "volatility_annualized": 31.252518486594873, "last_close": 276.4100036621094}, "analysis_summary": "The stock price of GOOGL has shown significant volatility over the past 30 days, with a minimum close of $250.46 and a maximum close of $291.31. The mean close for the period was $271.03, with a standard deviation of $14.34. The stock price experienced a 10.11% percent change over the 30-day period, indicating fluctuations in value. The annualized volatility of the stock was calculated to be 31.25%.\n\nIn terms of trends, it appears that the stock price of GOOGL has been trending upwards overall, with the last close at $276.41. Investors should consider the high volatility of the stock and its annualized volatility rate when making investment decisions."}], "completed_timestamp": "2025-11-15T12:00:51.004122", "status": "success"}
+{"router": "RouterCrew", "started_timestamp": "2025-11-15T12:00:42.000421", "companies": ["google"], "tickers": ["GOOGL"], "sub_agents": ["RedditAgent", "FinanceAgent", "YahooAgent", "SECAgent", "GeneralAgent"], "status": "success", "completed_timestamp": "2025-11-15T12:00:51.004706"}
