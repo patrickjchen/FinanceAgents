@@ -1,5 +1,7 @@
 import os
-import re
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
 import json
 import asyncio
 from datetime import datetime
@@ -7,151 +9,39 @@ from typing import List, Dict, Any, Optional
 from schemas import MCPRequest, MCPResponse, MCPContext
 from monitor import MonitorAgent
 
-FINANCIAL_KEYWORDS = [
-    "stock", "stocks", "share", "shares", "price", "prices",
-    "earnings", "revenue", "profit", "loss", "income",
-    "invest", "investment", "investor", "investing",
-    "dividend", "dividends", "yield",
-    "market", "markets", "trading", "trade", "trader",
-    "buy", "sell", "hold", "bullish", "bearish", "bull", "bear",
-    "portfolio", "asset", "assets", "liability", "liabilities",
-    "sec", "filing", "filings", "10-k", "10-q", "10k", "10q",
-    "quarterly", "annual", "fiscal", "financial", "finance",
-    "balance sheet", "income statement", "cash flow",
-    "p/e", "ratio", "eps", "ebitda", "roi", "roe",
-    "analyst", "forecast", "valuation", "capitalization",
-    "ipo", "merger", "acquisition", "bond", "bonds",
-    "equity", "debt", "loan", "bank", "banking",
-    "nasdaq", "nyse", "s&p", "dow", "etf", "fund",
-    "hedge", "mutual", "index",
-    "volatility", "volume", "momentum",
-    "ticker", "symbol", "chart",
-    "report", "quarter", "guidance", "outlook",
-    "sentiment", "wall street",
-]
+from shared_lib.constants import COMPANY_TICKER_MAP, FINANCIAL_KEYWORDS
+from shared_lib.query_classification import (
+    extract_companies as _extract_companies,
+    map_to_tickers as _map_to_tickers,
+    is_financial_query as _is_financial_query,
+    determine_agents as _determine_agents,
+)
+
 
 class LlamaIndexRouter:
     def __init__(self):
         self.monitor = MonitorAgent()
-
-        # Company to ticker mapping
-        self.company_ticker_map = {
-            "apple": "AAPL",
-            "microsoft": "MSFT",
-            "google": "GOOGL",
-            "alphabet": "GOOGL",
-            "amazon": "AMZN",
-            "meta": "META",
-            "facebook": "META",
-            "tesla": "TSLA",
-            "nvidia": "NVDA",
-            "netflix": "NFLX",
-            "intel": "INTC",
-            "ibm": "IBM",
-        }
+        self._raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "raw_data")
 
     def extract_companies(self, query: str) -> List[str]:
-        """Extract company names from query"""
-        companies = set()
-        if not query:
-            return []
-
-        query_lower = query.lower()
-
-        # Check against known companies
-        for company_name in self.company_ticker_map.keys():
-            try:
-                if re.search(rf'\b{re.escape(company_name)}\b', query_lower):
-                    companies.add(company_name)
-            except re.error:
-                if company_name in query_lower:
-                    companies.add(company_name)
-
-        # Also check for ticker symbols directly (e.g. "MSFT", "AAPL")
-        ticker_to_company = {}
-        for comp, tick in self.company_ticker_map.items():
-            ticker_to_company.setdefault(tick.lower(), comp)
-        for ticker_lower, comp in ticker_to_company.items():
-            try:
-                if re.search(rf'\b{re.escape(ticker_lower)}\b', query_lower):
-                    companies.add(comp)
-            except re.error:
-                if ticker_lower in query_lower:
-                    companies.add(comp)
-
-        # Check against raw data directory files
-        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "raw_data")
-        if os.path.exists(raw_data_dir):
-            try:
-                for fname in os.listdir(raw_data_dir):
-                    if fname.lower().endswith((".pdf", ".htm", ".html")):
-                        base = os.path.splitext(fname)[0]
-                        company = base.split("-")[0] if "-" in base else base
-                        company_lower = company.lower()
-                        try:
-                            if re.search(rf'\b{re.escape(company_lower)}\b', query_lower):
-                                companies.add(company_lower)
-                        except re.error:
-                            if company_lower in query_lower:
-                                companies.add(company_lower)
-            except Exception as e:
-                self.monitor.log_error("LlamaIndexRouter", f"Error extracting companies: {e}")
-
-        return list(companies)
+        return _extract_companies(
+            query,
+            raw_data_dir=self._raw_data_dir,
+            on_error=lambda msg: self.monitor.log_error("LlamaIndexRouter", msg),
+        )
 
     def map_to_tickers(self, companies: List[str]) -> List[str]:
-        """Map company names to stock tickers"""
-        if not companies:
-            return []
-
-        tickers = []
-        for company in companies:
-            ticker = self.company_ticker_map.get(company.lower())
-            if ticker:
-                tickers.append(ticker)
-
-        return list(set(tickers))
+        return _map_to_tickers(companies)
 
     def is_financial_query(self, query: str, companies: List[str], tickers: List[str]) -> bool:
-        """Smart two-step check to determine if query is financial."""
-        query_lower = query.lower().strip()
-
-        if companies or tickers:
-            remaining = query_lower
-            for company in companies:
-                remaining = re.sub(rf'\b{re.escape(company)}\b', '', remaining).strip()
-            for ticker in tickers:
-                remaining = re.sub(rf'\b{re.escape(ticker.lower())}\b', '', remaining).strip()
-
-            if not remaining or len(remaining.strip()) <= 2:
-                return True
-
-            for keyword in FINANCIAL_KEYWORDS:
-                if keyword in remaining:
-                    return True
-
-            return False
-
-        for keyword in FINANCIAL_KEYWORDS:
-            if keyword in query_lower:
-                return True
-
-        return False
+        return _is_financial_query(query, companies, tickers)
 
     def determine_agents(self, user_query: str, companies: List[str], tickers: List[str]) -> List[str]:
-        """Determine which agents to run based on smart query classification."""
-        try:
-            is_finance = self.is_financial_query(user_query, companies, tickers)
-            if is_finance:
-                if tickers:
-                    return ["FinanceAgent", "YahooAgent", "SECAgent", "RedditAgent"]
-                else:
-                    return ["FinanceAgent", "RedditAgent"]
-            else:
-                return ["GeneralAgent"]
-        except Exception as e:
-            self.monitor.log_error("LlamaIndexRouter", f"Error determining agents: {e}")
-            return ["FinanceAgent", "RedditAgent"]
+        return _determine_agents(
+            user_query, companies, tickers,
+            agent_order="finance_first",
+            on_error=lambda msg: self.monitor.log_error("LlamaIndexRouter", msg),
+        )
 
     async def run_agent(self, agent_name: str, mcp_request: MCPRequest) -> Optional[Any]:
         """Run a specific agent with error handling"""
