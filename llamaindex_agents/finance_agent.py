@@ -22,7 +22,7 @@ class FinanceAgent:
         Settings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
 
         self.persist_dir = "./vector_db/llamaindex_storage"
-        self.raw_data_dir = "./raw_data"
+        self.raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "raw_data")
 
         # Initialize or load the vector index
         self.index = self._get_or_create_index()
@@ -50,15 +50,15 @@ class FinanceAgent:
             return self._create_new_index()
 
     def _create_new_index(self) -> VectorStoreIndex:
-        """Create a new vector index from PDF documents"""
+        """Create a new vector index from PDF and HTML documents"""
         try:
             if not os.path.exists(self.raw_data_dir):
                 raise ValueError(f"Raw data directory not found: {self.raw_data_dir}")
 
-            # Load documents
+            # Load documents (supports PDF and HTML SEC filings)
             reader = SimpleDirectoryReader(
                 input_dir=self.raw_data_dir,
-                file_extractor={".pdf": None}  # Use default PDF parser
+                required_exts=[".pdf", ".htm", ".html"],
             )
             documents = reader.load_data()
 

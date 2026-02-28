@@ -26,7 +26,7 @@ pip install -r requirements_new.txt
 # Create necessary directories
 echo "Creating necessary directories..."
 mkdir -p vector_db/llamaindex_storage
-mkdir -p raw_data
+mkdir -p ../raw_data
 
 # Create .env file template if it doesn't exist
 if [ ! -f ".env" ]; then
@@ -49,6 +49,6 @@ echo "Setup complete!"
 echo ""
 echo "Next steps:"
 echo "1. Edit .env file with your API keys"
-echo "2. Add PDF documents to raw_data/ directory"
+echo "2. Add PDF documents to ../raw_data/ directory (shared across all frameworks)"
 echo "3. Run: python test_implementation.py (to test)"
 echo "4. Run: python main.py (to start the server)"

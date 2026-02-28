@@ -7,21 +7,32 @@ from typing import List, Dict, Any, Optional
 from schemas import MCPRequest, MCPResponse, MCPContext
 from monitor import MonitorAgent
 
+FINANCIAL_KEYWORDS = [
+    "stock", "stocks", "share", "shares", "price", "prices",
+    "earnings", "revenue", "profit", "loss", "income",
+    "invest", "investment", "investor", "investing",
+    "dividend", "dividends", "yield",
+    "market", "markets", "trading", "trade", "trader",
+    "buy", "sell", "hold", "bullish", "bearish", "bull", "bear",
+    "portfolio", "asset", "assets", "liability", "liabilities",
+    "sec", "filing", "filings", "10-k", "10-q", "10k", "10q",
+    "quarterly", "annual", "fiscal", "financial", "finance",
+    "balance sheet", "income statement", "cash flow",
+    "p/e", "ratio", "eps", "ebitda", "roi", "roe",
+    "analyst", "forecast", "valuation", "capitalization",
+    "ipo", "merger", "acquisition", "bond", "bonds",
+    "equity", "debt", "loan", "bank", "banking",
+    "nasdaq", "nyse", "s&p", "dow", "etf", "fund",
+    "hedge", "mutual", "index",
+    "volatility", "volume", "momentum",
+    "ticker", "symbol", "chart",
+    "report", "quarter", "guidance", "outlook",
+    "sentiment", "wall street",
+]
+
 class LlamaIndexRouter:
     def __init__(self):
         self.monitor = MonitorAgent()
-
-        # Finance keywords for query classification
-        self.finance_keywords = [
-            "stock", "stocks", "loan", "loans", "invest", "investment", "finance",
-            "bank", "banks", "banking", "dividend", "equity", "bond", "bonds",
-            "portfolio", "asset", "assets", "liability", "liabilities",
-            "balance sheet", "income statement", "cash flow", "financial report",
-            "earnings", "revenue", "profit", "loss", "market cap", "valuation",
-            "merger", "acquisition", "IPO", "interest rate", "inflation",
-            "recession", "bull market", "bear market", "trading", "exchange",
-            "securities", "broker", "dividend yield", "P/E ratio", "EPS"
-        ]
 
         # Company to ticker mapping
         self.company_ticker_map = {
@@ -38,23 +49,6 @@ class LlamaIndexRouter:
             "intel": "INTC",
             "ibm": "IBM",
         }
-
-        # Load additional keywords from raw data directory
-        self._load_additional_finance_keywords()
-
-    def _load_additional_finance_keywords(self):
-        """Load additional finance keywords from document filenames"""
-        raw_data_dir = "./raw_data"
-        if os.path.exists(raw_data_dir):
-            try:
-                file_topics = [
-                    os.path.splitext(f)[0].replace("-", " ").replace("_", " ")
-                    for f in os.listdir(raw_data_dir)
-                    if f.lower().endswith(".pdf")
-                ]
-                self.finance_keywords.extend(file_topics)
-            except Exception as e:
-                self.monitor.log_error("LlamaIndexRouter", f"Error loading additional keywords: {e}")
 
     def extract_companies(self, query: str) -> List[str]:
         """Extract company names from query"""
@@ -73,12 +67,24 @@ class LlamaIndexRouter:
                 if company_name in query_lower:
                     companies.add(company_name)
 
+        # Also check for ticker symbols directly (e.g. "MSFT", "AAPL")
+        ticker_to_company = {}
+        for comp, tick in self.company_ticker_map.items():
+            ticker_to_company.setdefault(tick.lower(), comp)
+        for ticker_lower, comp in ticker_to_company.items():
+            try:
+                if re.search(rf'\b{re.escape(ticker_lower)}\b', query_lower):
+                    companies.add(comp)
+            except re.error:
+                if ticker_lower in query_lower:
+                    companies.add(comp)
+
         # Check against raw data directory files
-        raw_data_dir = "./raw_data"
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "raw_data")
         if os.path.exists(raw_data_dir):
             try:
                 for fname in os.listdir(raw_data_dir):
-                    if fname.lower().endswith(".pdf"):
+                    if fname.lower().endswith((".pdf", ".htm", ".html")):
                         base = os.path.splitext(fname)[0]
                         company = base.split("-")[0] if "-" in base else base
                         company_lower = company.lower()
@@ -106,59 +112,52 @@ class LlamaIndexRouter:
 
         return list(set(tickers))
 
-    def is_finance_query(self, query: str) -> bool:
-        """Determine if query is finance-related"""
-        if not query or not isinstance(query, str):
+    def is_financial_query(self, query: str, companies: List[str], tickers: List[str]) -> bool:
+        """Smart two-step check to determine if query is financial."""
+        query_lower = query.lower().strip()
+
+        if companies or tickers:
+            remaining = query_lower
+            for company in companies:
+                remaining = re.sub(rf'\b{re.escape(company)}\b', '', remaining).strip()
+            for ticker in tickers:
+                remaining = re.sub(rf'\b{re.escape(ticker.lower())}\b', '', remaining).strip()
+
+            if not remaining or len(remaining.strip()) <= 2:
+                return True
+
+            for keyword in FINANCIAL_KEYWORDS:
+                if keyword in remaining:
+                    return True
+
             return False
 
-        query_lower = query.lower()
-
-        # Check for finance keywords
-        for keyword in self.finance_keywords:
-            try:
-                if re.search(rf'\b{re.escape(keyword)}\b', query_lower):
-                    return True
-            except re.error:
-                if keyword in query_lower:
-                    return True
-
-        # Check for ticker patterns (e.g., AAPL, MSFT)
-        try:
-            if re.search(r'\b[A-Z]{2,5}\b', query):
+        for keyword in FINANCIAL_KEYWORDS:
+            if keyword in query_lower:
                 return True
-        except re.error:
-            pass
 
         return False
 
-    def determine_agents(self, user_query: str, tickers: List[str]) -> List[str]:
-        """Determine which agents to run based on query analysis"""
+    def determine_agents(self, user_query: str, companies: List[str], tickers: List[str]) -> List[str]:
+        """Determine which agents to run based on smart query classification."""
         try:
-            is_finance = self.is_finance_query(user_query)
-
-            if not is_finance:
-                return ["GeneralAgent"]
-            elif is_finance and tickers:
-                # Full financial analysis with all agents
-                return ["FinanceAgent", "YahooAgent", "SECAgent", "RedditAgent", "GeneralAgent"]
+            is_finance = self.is_financial_query(user_query, companies, tickers)
+            if is_finance:
+                if tickers:
+                    return ["FinanceAgent", "YahooAgent", "SECAgent", "RedditAgent"]
+                else:
+                    return ["FinanceAgent", "RedditAgent"]
             else:
-                # Finance query without specific tickers
-                return ["FinanceAgent", "RedditAgent", "GeneralAgent"]
-
+                return ["GeneralAgent"]
         except Exception as e:
             self.monitor.log_error("LlamaIndexRouter", f"Error determining agents: {e}")
-            return ["GeneralAgent"]  # Fallback
+            return ["FinanceAgent", "RedditAgent"]
 
     async def run_agent(self, agent_name: str, mcp_request: MCPRequest) -> Optional[Any]:
         """Run a specific agent with error handling"""
         try:
             # Dynamic import to avoid circular dependencies
-            if agent_name == "GeneralAgent":
-                from general_agent import GeneralAgent
-                agent = GeneralAgent()
-                return agent.run(mcp_request)
-
-            elif agent_name == "FinanceAgent":
+            if agent_name == "FinanceAgent":
                 from finance_agent import FinanceAgent
                 agent = FinanceAgent()
                 return agent.run(mcp_request)
@@ -176,6 +175,11 @@ class LlamaIndexRouter:
             elif agent_name == "RedditAgent":
                 from reddit_agent import RedditAgent
                 agent = RedditAgent()
+                return agent.run(mcp_request)
+
+            elif agent_name == "GeneralAgent":
+                from general_agent import GeneralAgent
+                agent = GeneralAgent()
                 return agent.run(mcp_request)
 
             else:
@@ -203,7 +207,7 @@ class LlamaIndexRouter:
             tickers = self.map_to_tickers(companies)
 
             # Determine which agents to run
-            agent_names = self.determine_agents(user_query, tickers)
+            agent_names = self.determine_agents(user_query, companies, tickers)
 
             # Update context
             updated_context = MCPContext(

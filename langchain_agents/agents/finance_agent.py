@@ -3,7 +3,7 @@ from agents.monitor import MonitorAgent
 import os
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader, BSHTMLLoader
 import traceback
 import json
 import random
@@ -40,15 +40,18 @@ class FinanceAgent:
                 status = "ChromaDB index built from scratch"
                 print(f"[FinanceAgent] {status} at {start_time}. Building from raw_data...")
                 docs = []
-                raw_data_dir = "raw_data"
+                raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
                 for fname in os.listdir(raw_data_dir):
-                    if fname.lower().endswith(".pdf"):
+                    if fname.lower().endswith((".pdf", ".htm", ".html")):
                         pdf_path = os.path.join(raw_data_dir, fname)
                         base = os.path.splitext(fname)[0]
                         year_match = re.search(r"(20\d{2})", base)
                         year = year_match.group(1) if year_match else "Unknown"
                         company = base.split("-")[0] if "-" in base else base
-                        loader = PyPDFLoader(pdf_path)
+                        if fname.lower().endswith(".pdf"):
+                            loader = PyPDFLoader(pdf_path)
+                        else:
+                            loader = BSHTMLLoader(pdf_path)
                         loaded_docs = loader.load()
                         for d in loaded_docs:
                             d.metadata = d.metadata or {}
@@ -57,7 +60,7 @@ class FinanceAgent:
                             d.metadata["company"] = company.lower()
                         docs.extend(loaded_docs)
                 if not docs:
-                    raise ValueError("No PDF documents found in raw_data for RAG.")
+                    raise ValueError("No documents found in raw_data for RAG.")
                 print(f"[FinanceAgent] Loaded {len(docs)} documents. Creating ChromaDB index...")
                 db = Chroma.from_documents(docs, self.embeddings, persist_directory=self.vector_db_path)
                 db.persist()
@@ -100,20 +103,23 @@ class FinanceAgent:
         response_data = []
         status = "processing"
         print(f"[FinanceAgent] Companies: {companies}")
-        raw_data_dir = "raw_data"
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         try:
             for company in companies:
                 print(f"[FinanceAgent] Processing company: {company}")
                 # 1. Check for files about the company
-                company_files = [fname for fname in os.listdir(raw_data_dir) if company.lower() in fname.lower() and fname.lower().endswith('.pdf')]
+                company_files = [fname for fname in os.listdir(raw_data_dir) if company.lower() in fname.lower() and fname.lower().endswith(('.pdf', '.htm', '.html'))]
                 if not company_files:
                     print(f"There is no internal files about the {company}.")
                     continue
                 # 2. Retrieve relevant content for the query from those files
                 docs = []
                 for fname in company_files:
-                    pdf_path = os.path.join(raw_data_dir, fname)
-                    loader = PyPDFLoader(pdf_path)
+                    file_path = os.path.join(raw_data_dir, fname)
+                    if fname.lower().endswith(".pdf"):
+                        loader = PyPDFLoader(file_path)
+                    else:
+                        loader = BSHTMLLoader(file_path)
                     loaded_docs = loader.load()
                     docs.extend(loaded_docs)
                 # Use retriever to get relevant docs for the query

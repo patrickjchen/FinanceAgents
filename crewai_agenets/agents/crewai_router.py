@@ -33,34 +33,40 @@ COMPANY_TICKER_MAP = {
     "ibm": "IBM",
 }
 
+FINANCIAL_KEYWORDS = [
+    "stock", "stocks", "share", "shares", "price", "prices",
+    "earnings", "revenue", "profit", "loss", "income",
+    "invest", "investment", "investor", "investing",
+    "dividend", "dividends", "yield",
+    "market", "markets", "trading", "trade", "trader",
+    "buy", "sell", "hold", "bullish", "bearish", "bull", "bear",
+    "portfolio", "asset", "assets", "liability", "liabilities",
+    "sec", "filing", "filings", "10-k", "10-q", "10k", "10q",
+    "quarterly", "annual", "fiscal", "financial", "finance",
+    "balance sheet", "income statement", "cash flow",
+    "p/e", "ratio", "eps", "ebitda", "roi", "roe",
+    "analyst", "forecast", "valuation", "capitalization",
+    "ipo", "merger", "acquisition", "bond", "bonds",
+    "equity", "debt", "loan", "bank", "banking",
+    "nasdaq", "nyse", "s&p", "dow", "etf", "fund",
+    "hedge", "mutual", "index",
+    "volatility", "volume", "momentum",
+    "ticker", "symbol", "chart",
+    "report", "quarter", "guidance", "outlook",
+    "sentiment", "wall street",
+]
+
 class RouterCrew:
     def __init__(self):
-        self.finance_keywords = [
-            "stock", "stocks", "loan", "loans", "invest", "investment", "finance", 
-            "bank", "banks", "banking", "dividend", "equity", "bond", "bonds",
-            "portfolio", "asset", "assets", "liability", "liabilities", 
-            "balance sheet", "income statement", "cash flow", "financial report",
-            "earnings", "revenue", "profit", "loss", "market cap", "valuation",
-            "merger", "acquisition", "IPO", "interest rate", "inflation",
-            "recession", "bull market", "bear market", "trading", "exchange",
-            "securities", "broker", "dividend yield", "P/E ratio", "EPS"
-        ]
-        raw_data_dir = "./backend/raw_data"
-        if os.path.exists(raw_data_dir):
-            try:
-                file_topics = [os.path.splitext(f)[0].replace("-", " ").replace("_", " ") 
-                              for f in os.listdir(raw_data_dir) if f.lower().endswith(".pdf")]
-                self.finance_keywords.extend(file_topics)
-            except Exception as e:
-                logger.error(f"Error loading finance keywords: {e}")
+        pass
 
     def extract_companies(self, query: str) -> List[str]:
         companies = set()
         if not query:
             return []
-            
+
         query_lower = query.lower()
-        
+
         # Check against known companies
         for name in list(COMPANY_TICKER_MAP.keys()):
             try:
@@ -69,13 +75,25 @@ class RouterCrew:
             except re.error:
                 if name in query_lower:
                     companies.add(name)
+
+        # Also check for ticker symbols directly (e.g. "MSFT", "AAPL")
+        ticker_to_company = {}
+        for comp, tick in COMPANY_TICKER_MAP.items():
+            ticker_to_company.setdefault(tick.lower(), comp)
+        for ticker_lower, comp in ticker_to_company.items():
+            try:
+                if re.search(rf'\b{re.escape(ticker_lower)}\b', query_lower):
+                    companies.add(comp)
+            except re.error:
+                if ticker_lower in query_lower:
+                    companies.add(comp)
         
         # Check raw data directory
-        raw_data_dir = "./backend/raw_data"
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         if os.path.exists(raw_data_dir):
             try:
                 for fname in os.listdir(raw_data_dir):
-                    if fname.lower().endswith(".pdf"):
+                    if fname.lower().endswith((".pdf", ".htm", ".html")):
                         base = os.path.splitext(fname)[0]
                         company = base.split("-")[0] if "-" in base else base
                         company_lower = company.lower()
@@ -103,52 +121,63 @@ class RouterCrew:
                 continue
         return list(set(tickers))
 
-    def is_finance_query(self, query: str) -> bool:
-        if not query or not isinstance(query, str):
-            return False
-            
-        query_lower = query.lower()
-        # Check for finance keywords
-        for keyword in self.finance_keywords:
-            try:
-                if re.search(rf'\b{re.escape(keyword)}\b', query_lower):
-                    return True
-            except re.error:
-                if keyword in query_lower:
-                    return True
-        
-        # Check for ticker patterns (e.g., AAPL, MSFT)
-        try:
-            if re.search(r'\b[A-Z]{2,5}\b', query):
+    def is_financial_query(self, query: str, companies: List[str], tickers: List[str]) -> bool:
+        """Smart two-step check to determine if query is financial.
+
+        Step 1: If companies/tickers found, check if the surrounding context is financial.
+                If query is just a company name (e.g. "APPLE"), treat as financial.
+                If remaining words are non-financial (e.g. "apple pie"), return False.
+        Step 2: If no companies found, check for financial keywords.
+        """
+        query_lower = query.lower().strip()
+
+        if companies or tickers:
+            # Remove company/ticker names to see remaining context
+            remaining = query_lower
+            for company in companies:
+                remaining = re.sub(rf'\b{re.escape(company)}\b', '', remaining).strip()
+            for ticker in tickers:
+                remaining = re.sub(rf'\b{re.escape(ticker.lower())}\b', '', remaining).strip()
+
+            # If query was just the company/ticker name, treat as financial
+            if not remaining or len(remaining.strip()) <= 2:
                 return True
-        except re.error:
-            pass
-            
+
+            # Check if remaining context contains financial keywords
+            for keyword in FINANCIAL_KEYWORDS:
+                if keyword in remaining:
+                    return True
+
+            # Company found but context is non-financial (e.g. "apple pie")
+            return False
+
+        # No companies found - check for general financial keywords
+        for keyword in FINANCIAL_KEYWORDS:
+            if keyword in query_lower:
+                return True
+
         return False
 
-    def determine_agents(self, user_query: str, tickers: List[str]) -> List[str]:
-        """Safely determine which agents to run"""
+    def determine_agents(self, user_query: str, companies: List[str], tickers: List[str]) -> List[str]:
+        """Determine which agents to run based on smart query classification."""
         try:
-            is_finance = self.is_finance_query(user_query)
-            
-            if not is_finance:
+            is_finance = self.is_financial_query(user_query, companies, tickers)
+            if is_finance:
+                if tickers:
+                    return ["RedditAgent", "FinanceAgent", "YahooAgent", "SECAgent"]
+                else:
+                    return ["RedditAgent", "FinanceAgent"]
+            else:
                 return ["GeneralAgent"]
-            elif is_finance and tickers:
-                return ["RedditAgent", "FinanceAgent", "YahooAgent", "SECAgent", "GeneralAgent"]
-            else:  # is_finance and not tickers
-                return ["RedditAgent", "FinanceAgent", "GeneralAgent"]
         except Exception as e:
             logger.error(f"Error determining agents: {e}")
-            return ["GeneralAgent"]  # Fallback to general agent
+            return ["RedditAgent", "FinanceAgent"]
 
     async def run_agent(self, agent_name: str, mcp_request: MCPRequest, bg: BackgroundTasks) -> Optional[Any]:
         """Run an agent with comprehensive error handling"""
         try:
             # Dynamically import agent to isolate dependencies
-            if agent_name == "GeneralAgent":
-                from agents.general_agent import GeneralAgent
-                agent_class = GeneralAgent
-            elif agent_name == "FinanceAgent":
+            if agent_name == "FinanceAgent":
                 from agents.finance_agent import FinanceAgent
                 agent_class = FinanceAgent
             elif agent_name == "YahooAgent":
@@ -160,6 +189,9 @@ class RouterCrew:
             elif agent_name == "RedditAgent":
                 from agents.reddit_agent import RedditAgent
                 agent_class = RedditAgent
+            elif agent_name == "GeneralAgent":
+                from agents.general_agent import GeneralAgent
+                agent_class = GeneralAgent
             else:
                 logger.error(f"Agent {agent_name} not supported")
                 return None
@@ -168,6 +200,10 @@ class RouterCrew:
             
             if agent_name == "RedditAgent":
                 return await agent_instance.run(mcp_request, bg)
+            elif agent_name == "GeneralAgent":
+                # GeneralAgent.run takes only mcp_request
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent_instance.run, mcp_request)
             else:
                 # Run synchronous agents in thread pool
                 loop = asyncio.get_running_loop()
@@ -193,12 +229,12 @@ class RouterCrew:
             companies = []
             tickers = []
         
-        # Safely determine agents
+        # Determine which agents to run using smart classification
         try:
-            agent_names = self.determine_agents(user_query, tickers) or ["GeneralAgent"]
+            agent_names = self.determine_agents(user_query, companies, tickers)
         except Exception as e:
             logger.error(f"Error determining agents: {e}")
-            agent_names = ["GeneralAgent"]
+            agent_names = ["RedditAgent", "FinanceAgent"]
         
         log_message = {
             "router": "RouterCrew",

@@ -141,9 +141,9 @@ def check_environment():
             print(f"⚠️  {var} is not set")
 
     # Check for raw data directory
-    raw_data_dir = "./raw_data"
+    raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "raw_data")
     if os.path.exists(raw_data_dir):
-        files = [f for f in os.listdir(raw_data_dir) if f.endswith('.pdf')]
+        files = [f for f in os.listdir(raw_data_dir) if f.endswith(('.pdf', '.htm', '.html'))]
         print(f"✅ Raw data directory exists with {len(files)} PDF files")
     else:
         print("⚠️  Raw data directory not found")

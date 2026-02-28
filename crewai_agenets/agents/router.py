@@ -40,9 +40,9 @@ class RouterAgent:
         self.finance_topics = [
             "stock", "loan", "investment", "finance", "bank", "dividend", "equity", "bond", "portfolio", "asset", "liability", "balance sheet", "income statement", "cash flow", "financial report"
         ]
-        raw_data_dir = "./backend/raw_data"
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         if os.path.exists(raw_data_dir):
-            file_topics = [os.path.splitext(f)[0].replace("-", " ").replace("_", " ") for f in os.listdir(raw_data_dir) if f.lower().endswith(".pdf")]
+            file_topics = [os.path.splitext(f)[0].replace("-", " ").replace("_", " ") for f in os.listdir(raw_data_dir) if f.lower().endswith((".pdf", ".htm", ".html"))]
             self.finance_topics += file_topics
         self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
         self.threshold = 0.4
@@ -53,10 +53,10 @@ class RouterAgent:
         for name in COMPANY_TICKER_MAP.keys():
             if name in query_lower:
                 companies.add(name)
-        raw_data_dir = "./backend/raw_data"
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         if os.path.exists(raw_data_dir):
             for fname in os.listdir(raw_data_dir):
-                if fname.lower().endswith(".pdf"):
+                if fname.lower().endswith((".pdf", ".htm", ".html")):
                     base = os.path.splitext(fname)[0]
                     company = base.split("-")[0] if "-" in base else base
                     if company.lower() in query_lower:

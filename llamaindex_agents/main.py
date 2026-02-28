@@ -48,7 +48,7 @@ AGENT_TIPS = {
     "finance": "Finance agent analyzes internal financial documents using RAG technology.",
     "yahoo": "Yahoo agent provides real-time stock data analysis and market statistics.",
     "sec": "SEC agent analyzes public company financial filings and regulatory data.",
-    "general": "General agent handles non-financial queries and provides system information."
+    "general": "General agent handles non-financial queries and general information requests.",
 }
 
 async def generate_comprehensive_summary(query: str, all_agent_data: dict, improved_responses: dict) -> str:
@@ -92,9 +92,6 @@ async def generate_comprehensive_summary(query: str, all_agent_data: dict, impro
             elif agent == "sec":
                 if isinstance(data, dict) and "sec" in data:
                     agent_contributions.append("SEC Agent provided regulatory filing analysis")
-
-            elif agent == "general":
-                agent_contributions.append("General Agent provided contextual information")
 
         # Create comprehensive prompt
         contributions_text = "\n".join([f"- {contrib}" for contrib in agent_contributions])
@@ -256,7 +253,7 @@ def _get_agent_key(agent: str) -> str:
         "finance": "FinanceAgent",
         "yahoo": "YahooAgent",
         "sec": "SecAgent",
-        "general": "GeneralAgent"
+        "general": "GeneralAgent",
     }
 
     return agent_mapping.get(agent, f"{agent.capitalize()}Agent")
@@ -349,7 +346,7 @@ async def list_agents():
             "YahooAgent - Real-time stock data and analysis",
             "SECAgent - SEC filing analysis",
             "RedditAgent - Social media sentiment analysis",
-            "GeneralAgent - General queries and system info"
+            "GeneralAgent - General queries and system information",
         ],
         "framework": "LlamaIndex",
         "version": "2.0.0"

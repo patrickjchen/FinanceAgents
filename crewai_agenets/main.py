@@ -11,7 +11,6 @@ from datetime import datetime
 #from agents.router import RouterAgent
 from agents.crewai_router import RouterCrew
 from agents.finance_agent import FinanceAgent
-from agents.general_agent import GeneralAgent
 from agents.monitor import MonitorAgent
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +52,44 @@ AGENT_TIPS = {
     "sec": "SEC agent response is about public company's financial info from SEC files."
 }
 
+async def generate_comprehensive_summary(user_query: str, agent_results: dict) -> str:
+    """Generate a comprehensive summary combining all agent outputs."""
+    if not agent_results:
+        return ""
+    combined = "\n\n".join(
+        f"--- {name} ---\n{data.get('summary', str(data))}"
+        for name, data in agent_results.items()
+    )
+    prompt = (
+        f"You are a senior financial analyst. The user asked: \"{user_query}\"\n\n"
+        f"Below are the analysis results from multiple specialized agents:\n\n"
+        f"{combined}\n\n"
+        f"Please provide a comprehensive summary that:\n"
+        f"1. Synthesizes key findings from all agents\n"
+        f"2. Highlights important financial metrics, stock data, and sentiment\n"
+        f"3. Provides an overall assessment of the company/stock\n"
+        f"4. Notes any risks or concerns\n"
+        f"Keep the summary concise but informative."
+    )
+    try:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return "Summary unavailable (no API key)."
+        client = openai.OpenAI(api_key=api_key)
+        response = await asyncio.to_thread(
+            lambda: client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+            )
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        with open("monitor_logs.json", "a") as f:
+            f.write(f"LLM error for summary: {e}\n")
+        return "Summary generation failed."
+
+
 async def improve_agent_response(agent: str, content: str) -> str:
     """Use LLM to improve, summarize, and clean up agent output."""
     if not content:
@@ -89,42 +126,55 @@ async def get_query_response(query: str) -> dict:
     try:
         mcp_request = MCPRequest(context=MCPContext(user_query=query))
         mcp_response = await router_agent.route(mcp_request, None)
-        #mcp_response = await run_crew(mcp_request)
         if not mcp_response or not mcp_response.data:
             return {}
         improved = {}
+        has_general = False
         for agent, result in mcp_response.data.items():
             if not result or (isinstance(result, dict) and result.get("error")):
                 continue
-            # Print before LLM
             print(f"[main.py] {agent} response BEFORE LLM:\n{result}")
             if agent == "general":
-                # If result is a dict with a 'general' key, extract the value
+                # GeneralAgent: extract response directly, skip LLM improvement
+                has_general = True
                 if isinstance(result, dict) and "general" in result and len(result) == 1:
                     improved_content = result["general"]
+                elif isinstance(result, dict) and "response" in result:
+                    improved_content = result["response"]
                 else:
-                    improved_content = result
+                    improved_content = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False)
+                improved["GeneralAgent"] = {"summary": improved_content}
             else:
                 if isinstance(result, dict):
                     content = json.dumps(result, ensure_ascii=False)
                 else:
                     content = str(result)
                 improved_content = await improve_agent_response(agent, content)
-            # Print after LLM
-            print(f"[main.py] {agent} response AFTER LLM:\n{improved_content}")
-            # Map agent key to output name
-            agent_key = agent.capitalize() + "Agent" if agent != "sec" else "SecAgent"
-            if agent == "reddit":
-                agent_key = "RedditAgent"
-            elif agent == "finance":
-                agent_key = "FinanceAgent"
-            elif agent == "yahoo":
-                agent_key = "YahooAgent"
-            elif agent == "general":
-                agent_key = "GeneralAgent"
-            improved[agent_key] = {"summary": improved_content}
+                print(f"[main.py] {agent} response AFTER LLM:\n{improved_content}")
+                agent_key_map = {
+                    "reddit": "RedditAgent",
+                    "finance": "FinanceAgent",
+                    "yahoo": "YahooAgent",
+                    "sec": "SecAgent",
+                }
+                agent_key = agent_key_map.get(agent, agent.capitalize() + "Agent")
+                improved[agent_key] = {"summary": improved_content}
         if not improved:
             return {}
+
+        # Only generate comprehensive summary for financial queries (not GeneralAgent)
+        if not has_general:
+            print(f"\n{'='*60}")
+            print(f"Generating comprehensive summary...")
+            print(f"{'='*60}")
+            summary = await generate_comprehensive_summary(query, improved)
+            improved["FinalSummary"] = {"summary": summary}
+            print(f"\n{'='*60}")
+            print(f"FINAL SUMMARY")
+            print(f"{'='*60}")
+            print(summary)
+            print(f"{'='*60}\n")
+
         return improved
     except Exception as e:
         timestamp = datetime.now().isoformat()

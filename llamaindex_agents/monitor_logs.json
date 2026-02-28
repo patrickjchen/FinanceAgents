@@ -499,3 +499,104 @@ Comprehensive summary generation error: Error code: 401 - {'error': {'message': 
 {"timestamp": "2025-11-15T11:39:51.419273", "agent": "BankerAIWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 3, Failed: 2"}
 {"timestamp": "2025-11-15T11:39:57.346764", "agent": "BankerAIWorkflow", "status": "COMPLETED", "details": "Total time: 10.21s"}
 {"timestamp": "2025-11-15T11:39:57.353232", "agent": "BankerAIWorkflow", "status": "SUCCESS", "details": "Query processed in 24.03s with 4 results"}
+{"timestamp": "2026-02-28T09:18:38.649097", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:18:38.941194", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:18:38.944363", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T09:18:38.948942", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T09:18:38.952850", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"GOOGLE vs APPLE\", \"companies\": [\"google\", \"apple\"], \"tickers\": [\"GOOGL\", \"AAPL\"], \"is_finance\": true, \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\", \"GeneralAgent\"]}"}
+{"timestamp": "2026-02-28T09:18:39.678482", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 2 companies"}
+{"timestamp": "2026-02-28T09:18:43.117911", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (19,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T09:18:43.118110", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 2 tickers"}
+{"timestamp": "2026-02-28T09:18:44.796962", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 2 companies"}
+{"timestamp": "2026-02-28T09:18:44.797140", "agent": "FinanceAgentsWorkflow", "error": "RedditAgent execution failed: Agent RedditAgent not found in initialized agents", "context": {}}
+{"timestamp": "2026-02-28T09:18:45.060400", "agent": "GeneralAgent", "error": "Error code: 401 - {'error': {'message': \"You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\", 'type': 'invalid_request_error', 'param': None, 'code': None}}", "context": {"query": "GOOGLE vs APPLE"}}
+{"timestamp": "2026-02-28T09:18:45.060624", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 4, Failed: 1"}
+{"timestamp": "2026-02-28T09:18:45.068403", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 6.11s"}
+{"timestamp": "2026-02-28T09:18:45.069348", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 22.87s with 5 results"}
+{"timestamp": "2026-02-28T09:20:47.463469", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:20:47.723477", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:20:47.724067", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T09:20:47.724905", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T09:20:47.726993", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"GOOGLE stock\", \"companies\": [\"google\"], \"tickers\": [\"GOOGL\"], \"is_finance\": true, \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\", \"GeneralAgent\"]}"}
+{"timestamp": "2026-02-28T09:20:48.305778", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 1 companies"}
+{"timestamp": "2026-02-28T09:20:48.797452", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (20,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T09:20:48.797611", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 1 tickers"}
+{"timestamp": "2026-02-28T09:20:49.852860", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 1 companies"}
+{"timestamp": "2026-02-28T09:20:49.853076", "agent": "FinanceAgentsWorkflow", "error": "RedditAgent execution failed: Agent RedditAgent not found in initialized agents", "context": {}}
+{"timestamp": "2026-02-28T09:20:50.417511", "agent": "GeneralAgent", "error": "Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************UygA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}", "context": {"query": "GOOGLE stock"}}
+{"timestamp": "2026-02-28T09:20:50.417762", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 4, Failed: 1"}
+LLM improvement error for financeagent: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************UygA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+LLM improvement error for yahooagent: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************UygA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+LLM improvement error for secagent: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************UygA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+Comprehensive summary generation error: Error code: 401 - {'error': {'message': 'Incorrect API key provided: sk-proj-********************************************************************************************************************************************************UygA. You can find your API key at https://platform.openai.com/account/api-keys.', 'type': 'invalid_request_error', 'code': 'invalid_api_key', 'param': None}, 'status': 401}
+{"timestamp": "2026-02-28T09:20:52.207304", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 2.69s"}
+{"timestamp": "2026-02-28T09:20:52.208346", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 15.46s with 5 results"}
+{"timestamp": "2026-02-28T09:23:56.168244", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:23:56.420472", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T09:23:56.421035", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T09:23:56.421807", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T09:23:56.425624", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"GOOGLE\", \"companies\": [\"google\"], \"tickers\": [\"GOOGL\"], \"is_finance\": true, \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\", \"GeneralAgent\"]}"}
+{"timestamp": "2026-02-28T09:23:56.979204", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 1 companies"}
+{"timestamp": "2026-02-28T09:23:57.466439", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (21,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T09:23:57.466659", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 1 tickers"}
+{"timestamp": "2026-02-28T09:24:01.476971", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 1 companies"}
+{"timestamp": "2026-02-28T09:24:01.481250", "agent": "FinanceAgentsWorkflow", "error": "RedditAgent execution failed: Agent RedditAgent not found in initialized agents", "context": {}}
+{"timestamp": "2026-02-28T09:24:04.453303", "agent": "GeneralAgent", "status": "SUCCESS", "details": "Processed general query: GOOGLE..."}
+{"timestamp": "2026-02-28T09:24:04.453598", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 4, Failed: 1"}
+{"timestamp": "2026-02-28T09:24:12.668020", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 8.03s"}
+{"timestamp": "2026-02-28T09:24:12.669253", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 27.15s with 5 results"}
+{"timestamp": "2026-02-28T14:32:51.387518", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:32:51.658424", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:32:51.659266", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T14:32:51.660892", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T14:32:51.662886", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"MSFT\", \"companies\": [], \"tickers\": [], \"selected_agents\": [\"GeneralAgent\"]}"}
+{"timestamp": "2026-02-28T14:32:53.971847", "agent": "GeneralAgent", "status": "SUCCESS", "details": "Processed general query: MSFT..."}
+{"timestamp": "2026-02-28T14:32:53.972112", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 1, Failed: 0"}
+{"timestamp": "2026-02-28T14:32:53.994000", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 2.31s"}
+{"timestamp": "2026-02-28T14:32:53.995251", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 12.44s with 1 results"}
+{"timestamp": "2026-02-28T14:36:15.136809", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:36:15.435692", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:36:15.436723", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T14:36:15.438392", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T14:36:15.441457", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"MSFT\", \"companies\": [\"microsoft\"], \"tickers\": [\"MSFT\"], \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\"]}"}
+{"timestamp": "2026-02-28T14:36:16.206081", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 1 companies"}
+{"timestamp": "2026-02-28T14:36:17.659625", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (22,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T14:36:17.659783", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 1 tickers"}
+{"timestamp": "2026-02-28T14:36:23.142753", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 1 companies"}
+{"timestamp": "2026-02-28T14:36:23.149643", "agent": "FinanceAgentsWorkflow", "error": "RedditAgent execution failed: Agent RedditAgent not found in initialized agents", "context": {}}
+{"timestamp": "2026-02-28T14:36:23.149922", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 3, Failed: 1"}
+{"timestamp": "2026-02-28T14:36:30.661145", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 7.71s"}
+{"timestamp": "2026-02-28T14:36:30.665175", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 26.57s with 4 results"}
+{"timestamp": "2026-02-28T14:43:01.873278", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:43:02.147675", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:43:02.148636", "agent": "FinanceAgentsWorkflow", "error": "Failed to initialize RedditAgent: No module named 'asyncpraw'", "context": {}}
+{"timestamp": "2026-02-28T14:43:02.150252", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 4 agents"}
+{"timestamp": "2026-02-28T14:43:02.152868", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"MSFT\", \"companies\": [\"microsoft\"], \"tickers\": [\"MSFT\"], \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\"]}"}
+{"timestamp": "2026-02-28T14:43:02.684101", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 1 companies"}
+{"timestamp": "2026-02-28T14:43:03.283479", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (23,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T14:43:03.283640", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 1 tickers"}
+{"timestamp": "2026-02-28T14:43:10.352650", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 1 companies"}
+{"timestamp": "2026-02-28T14:43:10.359563", "agent": "FinanceAgentsWorkflow", "error": "RedditAgent execution failed: Agent RedditAgent not found in initialized agents", "context": {}}
+{"timestamp": "2026-02-28T14:43:10.359801", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 3, Failed: 1"}
+{"timestamp": "2026-02-28T14:43:15.612724", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 8.21s"}
+{"timestamp": "2026-02-28T14:43:15.616308", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 27.52s with 4 results"}
+{"timestamp": "2026-02-28T14:51:54.617317", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:51:54.890932", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:51:54.983340", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 5 agents"}
+{"timestamp": "2026-02-28T14:51:54.985915", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"MSFT\", \"companies\": [\"microsoft\"], \"tickers\": [\"MSFT\"], \"selected_agents\": [\"FinanceAgent\", \"YahooAgent\", \"SECAgent\", \"RedditAgent\"]}"}
+{"timestamp": "2026-02-28T14:51:55.545087", "agent": "FinanceAgent", "status": "SUCCESS", "details": "Processed query for 1 companies"}
+{"timestamp": "2026-02-28T14:51:56.035368", "agent": "YahooAgentEnhanced", "error": "Error querying data: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (24,) + inhomogeneous part.", "context": {}}
+{"timestamp": "2026-02-28T14:51:56.035527", "agent": "YahooAgentEnhanced", "status": "SUCCESS", "details": "Processed data for 1 tickers"}
+{"timestamp": "2026-02-28T14:52:00.071107", "agent": "SECAgent", "status": "SUCCESS", "details": "Processed SEC data for 1 companies"}
+{"agent": "RedditAgent", "started_timestamp": "2026-02-28T14:52:00.078386", "companies": ["microsoft"], "response": [{"company": "microsoft", "posts": [{"post_title": "OpenAI just raised $110B from Amazon and NVIDIA. Microsoft's exclusive AI monopoly is officially broken.", "post_url": "https://www.reddit.com/r/stocks/comments/1rg9yrw/openai_just_raised_110b_from_amazon_and_nvidia/", "summary": "Sam Altman just confirmed that OpenAI raised a massive $110 billion funding round.\n\u200b\nThe amount of money is insane, but the real story here is the structural shift in the cloud war. OpenAI is official...", "comment_summaries": [], "avg_sentiment": 0}, {"post_title": "NVDA is up big on AI but carries real hyperscaler risk. $LNG reported record exports today and doesn't care who makes the chips", "post_url": "https://www.reddit.com/r/stocks/comments/1rfiyt7/nvda_is_up_big_on_ai_but_carries_real_hyperscaler/", "summary": "Microsoft, Google, and Amazon are all building their own chips to cut out Nvidia.\n\nNobody is building their own natural gas.\n\nCheniere reported record exports today, 670 cargoes in 2025, beat on EBITD...", "comment_summaries": [], "avg_sentiment": 0}, {"post_title": "Microsoft Japan Raided Over Suspected Violation of Anti-monopoly Law", "post_url": "https://www.reddit.com/r/stocks/comments/1re9dbs/microsoft_japan_raided_over_suspected_violation/", "summary": "Quote from Channel News Asia\n\n>Japan's Fair Trade Commission raided Microsoft Japan's offices on Wednesday as part of an investigation into whether it improperly restricted customers of its Azure plat...", "comment_summaries": [], "avg_sentiment": 0}]}], "completed_timestamp": "2026-02-28T14:52:00.861132", "status": "success"}
+{"timestamp": "2026-02-28T14:52:00.861430", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 4, Failed: 0"}
+{"timestamp": "2026-02-28T14:52:06.270912", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 5.88s"}
+{"timestamp": "2026-02-28T14:52:06.274506", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 22.92s with 5 results"}
+{"timestamp": "2026-02-28T14:52:40.128140", "agent": "FinanceAgent", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:52:40.196061", "agent": "YahooAgentEnhanced", "status": "LOADED", "details": "Vector index loaded from storage"}
+{"timestamp": "2026-02-28T14:52:40.196304", "agent": "FinanceAgentsWorkflow", "status": "INITIALIZED", "details": "Loaded 5 agents"}
+{"timestamp": "2026-02-28T14:52:40.197826", "agent": "FinanceAgentsWorkflow", "status": "QUERY_ANALYZED", "details": "{\"query\": \"apple pie\", \"companies\": [\"apple\"], \"tickers\": [\"AAPL\"], \"selected_agents\": [\"GeneralAgent\"]}"}
+{"timestamp": "2026-02-28T14:52:41.909088", "agent": "GeneralAgent", "status": "SUCCESS", "details": "Processed general query: apple pie..."}
+{"timestamp": "2026-02-28T14:52:41.909301", "agent": "FinanceAgentsWorkflow", "status": "AGENTS_EXECUTED", "details": "Success: 1, Failed: 0"}
+{"timestamp": "2026-02-28T14:52:41.910660", "agent": "FinanceAgentsWorkflow", "status": "COMPLETED", "details": "Total time: 1.71s"}
+{"timestamp": "2026-02-28T14:52:41.911887", "agent": "FinanceAgentsWorkflow", "status": "SUCCESS", "details": "Query processed in 2.98s with 1 results"}

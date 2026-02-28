@@ -5,15 +5,18 @@ from datetime import datetime
 import os
 import traceback
 import json
-from sentence_transformers import SentenceTransformer, util
 from fastapi import APIRouter, BackgroundTasks
 from mcp.schemas import MCPRequest, MCPResponse, MCPContext
-from agents.general_agent import GeneralAgent
 from agents.finance_agent import FinanceAgent
 from agents.yahoo_agent import YahooAgent
 from agents.sec_agent import SECAgent
 from agents.reddit_agent import RedditAgent
 import asyncio
+import re
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -34,167 +37,264 @@ COMPANY_TICKER_MAP = {
     # Add more as needed
 }
 
+FINANCIAL_KEYWORDS = [
+    "stock", "stocks", "share", "shares", "price", "prices",
+    "earnings", "revenue", "profit", "loss", "income",
+    "invest", "investment", "investor", "investing",
+    "dividend", "dividends", "yield",
+    "market", "markets", "trading", "trade", "trader",
+    "buy", "sell", "hold", "bullish", "bearish", "bull", "bear",
+    "portfolio", "asset", "assets", "liability", "liabilities",
+    "sec", "filing", "filings", "10-k", "10-q", "10k", "10q",
+    "quarterly", "annual", "fiscal", "financial", "finance",
+    "balance sheet", "income statement", "cash flow",
+    "p/e", "ratio", "eps", "ebitda", "roi", "roe",
+    "analyst", "forecast", "valuation", "capitalization",
+    "ipo", "merger", "acquisition", "bond", "bonds",
+    "equity", "debt", "loan", "bank", "banking",
+    "nasdaq", "nyse", "s&p", "dow", "etf", "fund",
+    "hedge", "mutual", "index",
+    "volatility", "volume", "momentum",
+    "ticker", "symbol", "chart",
+    "report", "quarter", "guidance", "outlook",
+    "sentiment", "wall street",
+]
+
 class RouterAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.finance_topics = [
-            "stock", "loan", "investment", "finance", "bank", "dividend", "equity", "bond", "portfolio", "asset", "liability", "balance sheet", "income statement", "cash flow", "financial report"
-        ]
-        raw_data_dir = "raw_data"
-        if os.path.exists(raw_data_dir):
-            file_topics = [os.path.splitext(f)[0].replace("-", " ").replace("_", " ") for f in os.listdir(raw_data_dir) if f.lower().endswith(".pdf")]
-            self.finance_topics += file_topics
-        self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
-        self.threshold = 0.4
 
     def extract_companies(self, query: str):
         companies = set()
+        if not query:
+            return []
         query_lower = query.lower()
         for name in COMPANY_TICKER_MAP.keys():
-            if name in query_lower:
-                companies.add(name)
-        raw_data_dir = "raw_data"
+            try:
+                if re.search(rf'\b{re.escape(name)}\b', query_lower):
+                    companies.add(name)
+            except re.error:
+                if name in query_lower:
+                    companies.add(name)
+
+        # Also check for ticker symbols directly (e.g. "MSFT", "AAPL")
+        ticker_to_company = {}
+        for comp, tick in COMPANY_TICKER_MAP.items():
+            ticker_to_company.setdefault(tick.lower(), comp)
+        for ticker_lower, comp in ticker_to_company.items():
+            try:
+                if re.search(rf'\b{re.escape(ticker_lower)}\b', query_lower):
+                    companies.add(comp)
+            except re.error:
+                if ticker_lower in query_lower:
+                    companies.add(comp)
+        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         if os.path.exists(raw_data_dir):
-            for fname in os.listdir(raw_data_dir):
-                if fname.lower().endswith(".pdf"):
-                    base = os.path.splitext(fname)[0]
-                    company = base.split("-")[0] if "-" in base else base
-                    if company.lower() in query_lower:
-                        companies.add(company.lower())
+            try:
+                for fname in os.listdir(raw_data_dir):
+                    if fname.lower().endswith((".pdf", ".htm", ".html")):
+                        base = os.path.splitext(fname)[0]
+                        company = base.split("-")[0] if "-" in base else base
+                        company_lower = company.lower()
+                        try:
+                            if re.search(rf'\b{re.escape(company_lower)}\b', query_lower):
+                                companies.add(company_lower)
+                        except re.error:
+                            if company_lower in query_lower:
+                                companies.add(company_lower)
+            except Exception as e:
+                logger.error(f"Error extracting companies from files: {e}")
         return list(companies)
 
     def map_to_tickers(self, companies):
+        if not companies:
+            return []
         tickers = []
         for name in companies:
-            ticker = COMPANY_TICKER_MAP.get(name.lower())
-            if ticker:
-                tickers.append(ticker)
+            try:
+                ticker = COMPANY_TICKER_MAP.get(name.lower())
+                if ticker:
+                    tickers.append(ticker)
+            except Exception:
+                continue
         return list(set(tickers))
 
-    def is_finance_query(self, query: str):
-        query_emb = self.embedder.encode(query, convert_to_tensor=True)
-        topic_embs = self.embedder.encode(self.finance_topics, convert_to_tensor=True)
-        sims = util.pytorch_cos_sim(query_emb, topic_embs)[0]
-        max_sim = float(sims.max())
-        return max_sim > self.threshold, max_sim
+    def is_financial_query(self, query: str, companies: list, tickers: list) -> bool:
+        """Smart two-step check to determine if query is financial.
+
+        Step 1: If companies/tickers found, check if the surrounding context is financial.
+                If query is just a company name (e.g. "APPLE"), treat as financial.
+                If remaining words are non-financial (e.g. "apple pie"), return False.
+        Step 2: If no companies found, check for financial keywords.
+        """
+        query_lower = query.lower().strip()
+
+        if companies or tickers:
+            remaining = query_lower
+            for company in companies:
+                remaining = re.sub(rf'\b{re.escape(company)}\b', '', remaining).strip()
+            for ticker in tickers:
+                remaining = re.sub(rf'\b{re.escape(ticker.lower())}\b', '', remaining).strip()
+
+            if not remaining or len(remaining.strip()) <= 2:
+                return True
+
+            for keyword in FINANCIAL_KEYWORDS:
+                if keyword in remaining:
+                    return True
+
+            return False
+
+        for keyword in FINANCIAL_KEYWORDS:
+            if keyword in query_lower:
+                return True
+
+        return False
+
+    def determine_agents(self, user_query: str, companies: list, tickers: list) -> list:
+        """Determine which agents to run based on smart query classification."""
+        try:
+            is_finance = self.is_financial_query(user_query, companies, tickers)
+            if is_finance:
+                if tickers:
+                    return ["RedditAgent", "FinanceAgent", "YahooAgent", "SECAgent"]
+                else:
+                    return ["RedditAgent", "FinanceAgent"]
+            else:
+                return ["GeneralAgent"]
+        except Exception as e:
+            logger.error(f"Error determining agents: {e}")
+            return ["RedditAgent", "FinanceAgent"]
+
+    async def run_agent(self, agent_name: str, mcp_request: MCPRequest, bg: BackgroundTasks):
+        """Run an agent with error handling"""
+        try:
+            if agent_name == "FinanceAgent":
+                agent = FinanceAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            elif agent_name == "YahooAgent":
+                agent = YahooAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            elif agent_name == "SECAgent":
+                agent = SECAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            elif agent_name == "RedditAgent":
+                agent = RedditAgent()
+                return await agent.run(mcp_request, bg)
+            elif agent_name == "GeneralAgent":
+                from agents.general_agent import GeneralAgent
+                agent = GeneralAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            else:
+                logger.error(f"Agent {agent_name} not supported")
+                return None
+        except ImportError as e:
+            logger.error(f"Import error for {agent_name}: {e}")
+            return {"error": f"Agent dependencies missing: {e}"}
+        except Exception as e:
+            logger.error(f"Error running agent {agent_name}: {e}")
+            logger.error(traceback.format_exc())
+            return {"error": str(e)}
 
     async def route(self, mcp_request: MCPRequest, bg: BackgroundTasks) -> MCPResponse:
         start_time = datetime.now()
-        user_query = mcp_request.context.user_query
-        companies = self.extract_companies(user_query)
-        tickers = self.map_to_tickers(companies)
-        is_finance, sim_score = self.is_finance_query(user_query)
-        sub_agents = []
-        status = "processing"
-        responses = {}
-        context_updates = {}
+        user_query = mcp_request.context.user_query if mcp_request.context else ""
+
+        try:
+            companies = self.extract_companies(user_query) or []
+            tickers = self.map_to_tickers(companies) or []
+        except Exception as e:
+            logger.error(f"Error extracting companies/tickers: {e}")
+            companies = []
+            tickers = []
+
+        try:
+            agent_names = self.determine_agents(user_query, companies, tickers)
+        except Exception as e:
+            logger.error(f"Error determining agents: {e}")
+            agent_names = ["RedditAgent", "FinanceAgent"]
+
         log_message = {
             "router": "RouterAgent",
             "started_timestamp": start_time.isoformat(),
             "companies": companies,
             "tickers": tickers,
-            "sub_agents": [],
+            "sub_agents": agent_names,
             "status": "processing"
         }
+
+        responses = {}
+        context_updates = {}
+        status = "success"
+
         try:
             context = MCPContext(
                 user_query=user_query,
                 companies=companies,
                 tickers=tickers,
                 extracted_terms={},
-                version=mcp_request.context.version
+                version=getattr(mcp_request.context, "version", "1.0")
             )
-            loop = asyncio.get_event_loop()
-            tasks = []
-            agent_names = []
-            # Always use the updated context for all agents
-            if not is_finance:
-                gen_agent = GeneralAgent()
-                gen_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, gen_agent.run, gen_req))
-                agent_names.append("GeneralAgent")
-            elif is_finance and tickers:
-                reddit_agent = RedditAgent()
-                reddit_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(reddit_agent.run(reddit_req, bg))
-                agent_names.append("RedditAgent")
-                finance_agent = FinanceAgent()
-                finance_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, finance_agent.run, finance_req))
-                agent_names.append("FinanceAgent")
-                yahoo_agent = YahooAgent()
-                yahoo_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, yahoo_agent.run, yahoo_req))
-                agent_names.append("YahooAgent")
-                sec_agent = SECAgent()
-                sec_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, sec_agent.run, sec_req))
-                agent_names.append("SECAgent")
-                gen_agent = GeneralAgent()
-                gen_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, gen_agent.run, gen_req))
-                agent_names.append("GeneralAgent")
-            elif is_finance and not tickers and companies:
-                reddit_agent = RedditAgent()
-                reddit_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(reddit_agent.run(reddit_req, bg))
-                agent_names.append("RedditAgent")
-                finance_agent = FinanceAgent()
-                finance_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, finance_agent.run, finance_req))
-                agent_names.append("FinanceAgent")
-                gen_agent = GeneralAgent()
-                gen_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, gen_agent.run, gen_req))
-                agent_names.append("GeneralAgent")
-            elif is_finance and not companies:
-                reddit_agent = RedditAgent()
-                reddit_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(reddit_agent.run(reddit_req, bg))
-                agent_names.append("RedditAgent")
-                gen_agent = GeneralAgent()
-                gen_req = MCPRequest(request_id=mcp_request.request_id, context=context)
-                tasks.append(loop.run_in_executor(None, gen_agent.run, gen_req))
-                agent_names.append("GeneralAgent")
+            updated_request = MCPRequest(
+                request_id=mcp_request.request_id,
+                context=context
+            )
+
+            # Run agents concurrently
+            tasks = [self.run_agent(name, updated_request, bg) for name in agent_names]
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for name, result in zip(agent_names, results):
+
+            for agent_name, result in zip(agent_names, results):
+                key_name = agent_name.lower().replace("agent", "")
+
                 if isinstance(result, Exception):
-                    responses[name.lower()] = {"error": str(result)}
-                    status = "failed"
-                elif name == "RedditAgent" and hasattr(result, 'data'):
-                    responses["reddit"] = result.data
-                    if getattr(result, 'context_updates', None):
-                        context_updates.update(result.context_updates)
-                elif name == "FinanceAgent":
-                    responses["finance"] = result.data if hasattr(result, 'data') else result
-                elif name == "YahooAgent":
-                    responses["yahoo"] = result.data if hasattr(result, 'data') else result
-                elif name == "SECAgent":
-                    responses["sec"] = result.data if hasattr(result, 'data') else result
-                elif name == "GeneralAgent":
-                    responses["general"] = result.data if hasattr(result, 'data') else result
-                sub_agents.append(name)
-            status = "success" if status != "failed" else status
+                    responses[key_name] = {"error": str(result)}
+                    status = "partial_failure"
+                elif result is None:
+                    responses[key_name] = {"error": "Agent returned no response"}
+                    status = "partial_failure"
+                else:
+                    if hasattr(result, 'data'):
+                        responses[key_name] = result.data
+                        if hasattr(result, 'context_updates'):
+                            try:
+                                if result.context_updates:
+                                    context_updates.update(result.context_updates)
+                            except Exception as e:
+                                logger.error(f"Error updating context: {e}")
+                    elif isinstance(result, dict):
+                        responses[key_name] = result
+                    else:
+                        responses[key_name] = {"response": str(result)}
         except Exception as e:
             status = "failed"
             responses["error"] = str(e)
-            traceback.print_exc()
+            logger.error(f"Routing error: {e}")
+            logger.error(traceback.format_exc())
+
         completed_time = datetime.now()
         log_message.update({
             "completed_timestamp": completed_time.isoformat(),
-            "sub_agents": sub_agents,
+            "sub_agents": agent_names,
             "status": status
         })
+
         try:
             with open("monitor_logs.json", "a") as f:
                 f.write(json.dumps(log_message) + "\n")
         except Exception as e:
-            print(f"[RouterAgent] Logging error: {e}")
-        print(json.dumps(log_message, indent=2))
+            logger.error(f"[RouterAgent] Logging error: {e}")
+
+        logger.info(json.dumps(log_message, indent=2))
+
         return MCPResponse(
-            request_id=mcp_request.request_id,
-            data=responses,
-            context_updates=context_updates,
+            request_id=mcp_request.request_id or "unknown",
+            data=responses or {"error": "No agents responded"},
+            context_updates=context_updates or {},
             status=status,
             timestamp=completed_time
         )
