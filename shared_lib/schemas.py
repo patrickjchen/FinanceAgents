@@ -1,16 +1,16 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import uuid
 
 
 class MCPContext(BaseModel):
     """Shared context for all agents"""
-    user_query: str
-    companies: List[str] = []
-    tickers: List[str] = []
-    extracted_terms: Dict[str, List[str]] = {}
-    version: int = 1  # Context versioning
+    user_query: str = ""
+    companies: List[str] = Field(default_factory=list)
+    tickers: List[str] = Field(default_factory=list)
+    extracted_terms: Dict[str, Any] = Field(default_factory=dict)
+    version: str = "1.0"
 
 
 class MCPRequest(BaseModel):
@@ -23,8 +23,8 @@ class MCPRequest(BaseModel):
 
 class MCPResponse(BaseModel):
     """Standardized response format"""
-    request_id: Optional[str]
-    data: Dict
-    context_updates: Optional[Dict]
-    status: str = "success"  # success/failed
+    request_id: Optional[str] = None
+    data: Dict[str, Any] = Field(default_factory=dict)
+    context_updates: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    status: str = "success"
     timestamp: datetime = Field(default_factory=datetime.now)

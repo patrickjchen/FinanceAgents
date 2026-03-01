@@ -11,8 +11,8 @@ from fastapi import FastAPI, Request
 from datetime import datetime
 #from agents.router import RouterAgent
 from agents.crewai_router import RouterCrew
-from agents.finance_agent import FinanceAgent
-from agents.monitor import MonitorAgent
+from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.monitor import MonitorAgent
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 

@@ -12,7 +12,7 @@ from datetime import datetime
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from yahoo_agent_enhanced import YahooAgentEnhanced
-from schemas import MCPRequest, MCPContext
+from shared_lib.schemas import MCPRequest, MCPContext
 
 def test_enhanced_yahoo_agent():
     """Test the enhanced Yahoo agent with CSV and natural language capabilities"""

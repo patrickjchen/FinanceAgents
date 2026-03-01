@@ -8,35 +8,35 @@ print("=" * 30)
 
 # Test GeneralAgent
 try:
-    from agents.general_agent import GeneralAgent
+    from shared_lib.agents.general_agent import GeneralAgent
     print("✅ GeneralAgent imported successfully")
 except Exception as e:
     print(f"❌ GeneralAgent import failed: {e}")
 
 # Test FinanceAgent
 try:
-    from agents.finance_agent import FinanceAgent
+    from shared_lib.agents.finance_agent import FinanceAgent
     print("✅ FinanceAgent imported successfully")
 except Exception as e:
     print(f"❌ FinanceAgent import failed: {e}")
 
 # Test YahooAgent
 try:
-    from agents.yahoo_agent import YahooAgent
+    from shared_lib.agents.yahoo_agent import YahooAgent
     print("✅ YahooAgent imported successfully")
 except Exception as e:
     print(f"❌ YahooAgent import failed: {e}")
 
 # Test SECAgent
 try:
-    from agents.sec_agent import SECAgent
+    from shared_lib.agents.sec_agent import SECAgent
     print("✅ SECAgent imported successfully")
 except Exception as e:
     print(f"❌ SECAgent import failed: {e}")
 
 # Test RedditAgent
 try:
-    from agents.reddit_agent import RedditAgent
+    from shared_lib.agents.reddit_agent import RedditAgent
     print("✅ RedditAgent imported successfully")
 except Exception as e:
     print(f"❌ RedditAgent import failed: {e}")

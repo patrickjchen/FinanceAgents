@@ -1,5 +1,5 @@
 from datetime import datetime
-from agents.monitor import MonitorAgent
+from shared_lib.monitor import MonitorAgent
 import os
 #from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings

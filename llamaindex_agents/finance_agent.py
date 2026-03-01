@@ -10,8 +10,8 @@ from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.postprocessor import SimilarityPostprocessor
-from schemas import MCPRequest, MCPResponse
-from monitor import MonitorAgent
+from shared_lib.schemas import MCPRequest, MCPResponse
+from shared_lib.monitor import MonitorAgent
 
 class FinanceAgent:
     def __init__(self):

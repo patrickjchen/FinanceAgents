@@ -8,8 +8,8 @@ from llama_index.core import VectorStoreIndex, Document, StorageContext, load_in
 from llama_index.core.readers import SimpleDirectoryReader
 from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
-from schemas import MCPRequest, MCPResponse
-from monitor import MonitorAgent
+from shared_lib.schemas import MCPRequest, MCPResponse
+from shared_lib.monitor import MonitorAgent
 
 class YahooAgentEnhanced:
     def __init__(self):

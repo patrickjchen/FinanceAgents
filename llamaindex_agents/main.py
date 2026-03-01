@@ -15,8 +15,8 @@ import json
 
 # Import FinanceAgents Workflow and schemas
 from financeagents_workflow import run_financeagents_analysis
-from schemas import MCPRequest, MCPContext
-from monitor import MonitorAgent
+from shared_lib.schemas import MCPRequest, MCPContext
+from shared_lib.monitor import MonitorAgent
 
 app = FastAPI(
     title="FinanceAgents API - Workflow Implementation",

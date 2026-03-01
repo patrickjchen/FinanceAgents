@@ -61,8 +61,8 @@ class FinanceAgentsWorkflow(Workflow):
             from finance_agent import FinanceAgent
             from yahoo_agent_enhanced import YahooAgentEnhanced
             from reddit_agent import RedditAgent
-            from sec_agent import SECAgent
-            from general_agent import GeneralAgent
+            from shared_lib.agents.sec_agent import SECAgent
+            from shared_lib.agents.general_agent import GeneralAgent
 
             self.agent_instances = {
                 "FinanceAgent": FinanceAgent(),
@@ -80,7 +80,7 @@ class FinanceAgentsWorkflow(Workflow):
         user_query = ev.get("user_query", "")
 
         # Import router logic for query analysis
-        from router import LlamaIndexRouter
+        from shared_lib.query_classification import extract_companies, map_to_tickers, is_financial_query, determine_agents
         router = LlamaIndexRouter()
 
         # Extract companies and tickers
@@ -115,7 +115,7 @@ class FinanceAgentsWorkflow(Workflow):
     @step
     async def run_agents_parallel(self, ctx: Context, ev: QueryAnalyzedEvent) -> AllAgentsCompletedEvent:
         """Step 2: Run all selected agents in parallel"""
-        from schemas import MCPRequest, MCPContext
+        from shared_lib.schemas import MCPRequest, MCPContext
 
         # Create MCP request
         mcp_context = MCPContext(
