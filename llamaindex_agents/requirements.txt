@@ -6,7 +6,6 @@ llama-index-llms-openai
 llama-index-embeddings-huggingface
 llama-index-workflow
 llama-index-readers-file
-llama-index-readers-csv
 llama-index-vector-stores-chroma
 
 # Async Reddit client
