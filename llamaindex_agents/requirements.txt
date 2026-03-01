@@ -1,61 +1,13 @@
-# Core Python packages
-python-dotenv
+-r ../requirements.txt
 
-# Web framework
-fastapi
-uvicorn[standard]
-pydantic
-
-# LlamaIndex core packages
+# LlamaIndex framework
 llama-index-core
 llama-index-llms-openai
 llama-index-embeddings-huggingface
 llama-index-workflow
-
-# Additional LlamaIndex components
 llama-index-readers-file
 llama-index-readers-csv
 llama-index-vector-stores-chroma
 
-# AI/ML packages
-openai
-transformers
-torch
-sentence-transformers
-tokenizers
-
-# Data analysis and manipulation
-pandas
-numpy
-
-# Web scraping and APIs
-requests
-beautifulsoup4
-
-# Financial data
-yfinance
-
-# Reddit API
-praw
+# Async Reddit client
 asyncpraw
-
-# Document processing
-pypdf
-
-# PDF processing (alternative to pypdf if needed)
-PyPDF2
-
-# Vector database
-chromadb
-
-# Environment variables
-python-decouple
-
-# Development and testing
-pytest
-
-# CORS middleware
-fastapi[all]
-
-# Additional utilities
-tqdm
