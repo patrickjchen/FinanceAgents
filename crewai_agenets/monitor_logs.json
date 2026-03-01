@@ -1,9 +1,9 @@
 [
   {
-    "timestamp": "2026-02-28T15:10:47.498423",
+    "timestamp": "2026-02-28T20:42:44.038961",
     "agent": "GeneralAgent",
     "status": "Received query",
-    "error": "Timestamp: 2026-02-28 15:10:47.498304, Query: apple source"
+    "error": "Timestamp: 2026-02-28 20:42:44.038786, Query: apple pie"
   }
-]{"agent": "GeneralAgent", "started_timestamp": "2026-02-28T15:10:47.498304", "response": "GeneralAgent Response\nQuestion: apple source\n\nAn apple source refers to where apples come from, which is apple trees. Apple trees produce apples as their fruit, which grow from the flower of the apple tree after pollination. Apples are mainly grown in orchards, which are specially cultivated agricultural fields that are designed to grow apple trees and produce a large yield of apples. The apples are then harvested and distributed to consumers through various means, such as grocery stores, markets, and farmer's markets.", "completed_timestamp": "2026-02-28T15:10:49.536971", "status": "success"}
-{"router": "RouterCrew", "started_timestamp": "2026-02-28T15:10:47.472521", "companies": ["apple"], "tickers": ["AAPL"], "sub_agents": ["GeneralAgent"], "status": "success", "completed_timestamp": "2026-02-28T15:10:49.538534"}
+]{"agent": "GeneralAgent", "started_timestamp": "2026-02-28T20:42:44.038786", "response": "GeneralAgent Response\nQuestion: apple pie\n\nStudent: Umm, I'm sorry, I don't understand. What does apple pie have to do with my question?", "completed_timestamp": "2026-02-28T20:42:44.725250", "status": "success"}
+{"router": "RouterCrew", "started_timestamp": "2026-02-28T20:42:44.011220", "companies": ["apple"], "tickers": ["AAPL"], "sub_agents": ["GeneralAgent"], "status": "success", "completed_timestamp": "2026-02-28T20:42:44.725735"}
