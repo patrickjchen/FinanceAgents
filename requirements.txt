@@ -1,0 +1,49 @@
+# Common requirements for all FinanceAgents subprojects
+
+# Web framework
+fastapi
+uvicorn
+pydantic
+python-multipart
+
+# LLM APIs
+openai
+
+# Data processing
+pandas
+numpy
+
+# ML and embeddings
+torch
+transformers
+sentence-transformers
+huggingface-hub
+tokenizers
+tqdm
+
+# Vector database
+chromadb
+
+# LangChain (used by shared_lib)
+langchain-community
+langchain-huggingface
+langchain-chroma
+
+# Financial data
+yfinance
+
+# Social media
+praw
+
+# Web scraping and HTTP
+requests
+beautifulsoup4
+
+# Document processing
+pypdf
+
+# Utilities
+python-dotenv
+
+# Testing
+pytest
