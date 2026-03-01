@@ -11,54 +11,7 @@ from datetime import datetime
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from router import LlamaIndexRouter
-from schemas import MCPRequest, MCPContext
-
-async def test_router():
-    """Test the router with sample queries"""
-    router = LlamaIndexRouter()
-
-    test_queries = [
-        "What is Apple's stock performance?",
-        "Tell me about Tesla's financial reports",
-        "What is the weather like today?",
-        "Analyze NVIDIA sentiment on Reddit",
-        "Compare Microsoft and Google stocks"
-    ]
-
-    print("Testing LlamaIndex Router")
-    print("=" * 50)
-
-    for i, query in enumerate(test_queries, 1):
-        print(f"\nTest {i}: {query}")
-        print("-" * 30)
-
-        try:
-            # Test company extraction
-            companies = router.extract_companies(query)
-            tickers = router.map_to_tickers(companies)
-            is_finance = router.is_finance_query(query)
-            agents = router.determine_agents(query, tickers)
-
-            print(f"Companies: {companies}")
-            print(f"Tickers: {tickers}")
-            print(f"Is Finance Query: {is_finance}")
-            print(f"Selected Agents: {agents}")
-
-            # Create MCP request
-            context = MCPContext(
-                user_query=query,
-                companies=companies,
-                tickers=tickers
-            )
-            request = MCPRequest(context=context)
-
-            print(f"MCP Request created successfully")
-
-        except Exception as e:
-            print(f"❌ Error: {e}")
-
-        print()
+from shared_lib.schemas import MCPRequest, MCPContext
 
 def test_agents():
     """Test individual agents without full execution"""
@@ -66,7 +19,7 @@ def test_agents():
     print("=" * 30)
 
     try:
-        from general_agent import GeneralAgent
+        from shared_lib.agents.general_agent import GeneralAgent
         print("✅ GeneralAgent imported successfully")
     except Exception as e:
         print(f"❌ GeneralAgent import failed: {e}")
@@ -78,13 +31,13 @@ def test_agents():
         print(f"❌ FinanceAgent import failed: {e}")
 
     try:
-        from yahoo_agent import YahooAgent
-        print("✅ YahooAgent imported successfully")
+        from yahoo_agent_enhanced import YahooAgentEnhanced
+        print("✅ YahooAgentEnhanced imported successfully")
     except Exception as e:
-        print(f"❌ YahooAgent import failed: {e}")
+        print(f"❌ YahooAgentEnhanced import failed: {e}")
 
     try:
-        from sec_agent import SECAgent
+        from shared_lib.agents.sec_agent import SECAgent
         print("✅ SECAgent imported successfully")
     except Exception as e:
         print(f"❌ SECAgent import failed: {e}")
@@ -101,7 +54,7 @@ def test_schemas():
     print("=" * 20)
 
     try:
-        from schemas import MCPRequest, MCPResponse, MCPContext
+        from shared_lib.schemas import MCPRequest, MCPResponse, MCPContext
 
         # Test context creation
         context = MCPContext(
@@ -165,7 +118,6 @@ async def main():
     check_environment()
     test_schemas()
     test_agents()
-    await test_router()
 
     print("\n" + "=" * 45)
     print("Test completed!")

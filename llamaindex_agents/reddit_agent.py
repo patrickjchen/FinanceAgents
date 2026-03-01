@@ -3,8 +3,8 @@ import os
 import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from schemas import MCPRequest, MCPResponse
-from monitor import MonitorAgent
+from shared_lib.schemas import MCPRequest, MCPResponse
+from shared_lib.monitor import MonitorAgent
 
 class RedditAgent:
     def __init__(self):

@@ -56,19 +56,19 @@ class RouterCrew:
         try:
             # Dynamically import agent to isolate dependencies
             if agent_name == "FinanceAgent":
-                from agents.finance_agent import FinanceAgent
+                from shared_lib.agents.finance_agent import FinanceAgent
                 agent_class = FinanceAgent
             elif agent_name == "YahooAgent":
-                from agents.yahoo_agent import YahooAgent
+                from shared_lib.agents.yahoo_agent import YahooAgent
                 agent_class = YahooAgent
             elif agent_name == "SECAgent":
-                from agents.sec_agent import SECAgent
+                from shared_lib.agents.sec_agent import SECAgent
                 agent_class = SECAgent
             elif agent_name == "RedditAgent":
-                from agents.reddit_agent import RedditAgent
+                from shared_lib.agents.reddit_agent import RedditAgent
                 agent_class = RedditAgent
             elif agent_name == "GeneralAgent":
-                from agents.general_agent import GeneralAgent
+                from shared_lib.agents.general_agent import GeneralAgent
                 agent_class = GeneralAgent
             else:
                 logger.error(f"Agent {agent_name} not supported")

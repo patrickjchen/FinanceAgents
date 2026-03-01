@@ -4,16 +4,16 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
-from agents.monitor import MonitorAgent
+from shared_lib.monitor import MonitorAgent
 from datetime import datetime
 import traceback
 import json
 from fastapi import APIRouter, BackgroundTasks
 from mcp.schemas import MCPRequest, MCPResponse, MCPContext
-from agents.finance_agent import FinanceAgent
-from agents.yahoo_agent import YahooAgent
-from agents.sec_agent import SECAgent
-from agents.reddit_agent import RedditAgent
+from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.agents.yahoo_agent import YahooAgent
+from shared_lib.agents.sec_agent import SECAgent
+from shared_lib.agents.reddit_agent import RedditAgent
 import asyncio
 import logging
 
@@ -74,7 +74,7 @@ class RouterAgent:
                 agent = RedditAgent()
                 return await agent.run(mcp_request, bg)
             elif agent_name == "GeneralAgent":
-                from agents.general_agent import GeneralAgent
+                from shared_lib.agents.general_agent import GeneralAgent
                 agent = GeneralAgent()
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, agent.run, mcp_request)

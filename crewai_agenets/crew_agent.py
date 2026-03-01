@@ -1,11 +1,11 @@
 from crewai import Agent, Task, Crew
 from crewai.tools import tool
 from mcp.schemas import MCPRequest, MCPResponse
-from agents.finance_agent import FinanceAgent
-from agents.general_agent import GeneralAgent
-from agents.reddit_agent import RedditAgent
-from agents.yahoo_agent import YahooAgent
-from agents.sec_agent import SECAgent
+from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.agents.general_agent import GeneralAgent
+from shared_lib.agents.reddit_agent import RedditAgent
+from shared_lib.agents.yahoo_agent import YahooAgent
+from shared_lib.agents.sec_agent import SECAgent
 from datetime import datetime
 
 # Define Tool functions using CrewAI @tool decorator
