@@ -90,7 +90,7 @@ Standardized communication schemas from `shared_lib/schemas.py`:
 
 **Run FastAPI server + CLI:**
 ```bash
-python src/main.py
+env $(cat ../.env) python src/main.py
 ```
 
 This starts:

@@ -74,7 +74,7 @@ cp your-financial-documents.pdf raw_data/
 
 **Local Development:**
 ```bash
-python src/main.py
+env $(cat ../.env) python src/main.py
 ```
 
 This starts:
