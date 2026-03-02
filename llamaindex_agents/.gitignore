@@ -35,6 +35,9 @@ env/
 .env.local
 .env.*.local
 
+# Working directory
+working_dir/
+
 # Vector databases
 vector_db/
 **/vector_db/

@@ -23,7 +23,7 @@ class FinanceAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
         self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        self.vector_db_path = "vector_db/chroma_index"
+        self.vector_db_path = "working_dir/vector_db/chroma_index"
         self.retriever = self._get_retriever()
         self.prompts = [
             "As a professional investment banker, answer the following question with expertise and clarity:",
