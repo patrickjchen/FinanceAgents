@@ -76,15 +76,8 @@ cd llamaindex_agents
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file with API keys
-cat > .env << EOF
-OPENAI_API_KEY=your_openai_api_key_here
-REDDIT_CLIENT_ID=your_reddit_client_id_here
-REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
-EOF
-
 # Run the application
-python src/main.py
+env $(cat ../.env) python src/main.py
 ```
 
 See each implementation's README for specific setup instructions.
