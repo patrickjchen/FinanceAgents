@@ -265,15 +265,7 @@ langchain_agents/
 
 ### Company/Ticker Mapping
 
-Defined in `src/agents/router.py`:
-```python
-COMPANY_TICKER_MAP = {
-    "apple": "AAPL",
-    "microsoft": "MSFT",
-    "google": "GOOGL",
-    # ... add more companies
-}
-```
+Defined in `config/companies.json` at the project root. To add a new company, edit the `company_ticker_map` in that file.
 
 ### Finance Keywords
 

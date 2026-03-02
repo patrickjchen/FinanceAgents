@@ -163,7 +163,7 @@ crewai_agents/
 ### Company/Ticker Mapping
 
 The system automatically extracts company names and tickers from:
-- Hardcoded mappings in `COMPANY_TICKER_MAP`
+- Mappings defined in `config/companies.json` at the project root
 - PDF filenames in the `raw_data/` directory
 - Natural language processing of the query
 
