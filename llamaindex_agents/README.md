@@ -267,13 +267,13 @@ curl http://localhost:8001/agents
 ### Supported Companies
 
 FinanceAgents includes built-in mappings for major companies:
-- Apple (AAPL), Microsoft (MSFT), Google/Alphabet (GOOGL)
+- Apple (AAPL), Microsoft (MSFT), Google/Alphabet (GOOG)
 - Amazon (AMZN), Meta/Facebook (META), Tesla (TSLA)
 - NVIDIA (NVDA), Netflix (NFLX), Intel (INTC), IBM (IBM)
 
 **Add new companies:**
 1. Add PDF documents to `./raw_data/` (format: `company-year.pdf`)
-2. Update `company_ticker_map` in `src/agents/router.py`
+2. Update `config/companies.json` at the project root with the company name and ticker
 
 ### Agent Selection
 

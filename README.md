@@ -25,8 +25,11 @@ This repository contains three separate implementations of the same financial an
 ```
 FinanceAgents/
 ├── llamaindex_agents/     # LlamaIndex Workflow implementation
-├── crewai_agenets/        # CrewAI implementation
+├── crewai_agents/         # CrewAI implementation
 ├── langchain_agents/      # LangChain implementation
+├── shared_lib/            # Shared agents, schemas, and utilities
+├── config/                # Configuration data files
+├── raw_data/              # Financial PDF documents
 └── README.md              # This file
 ```
 
@@ -52,7 +55,7 @@ All three implementations share:
 Each implementation is self-contained in its own directory. Navigate to the implementation you want to use:
 
 - **[llamaindex_agents/](./llamaindex_agents/README.md)** - Recommended for production use (most robust)
-- **[crewai_agenets/](./crewai_agenets/README.md)** - Great for crew-based agent coordination
+- **[crewai_agents/](./crewai_agents/README.md)** - Great for crew-based agent coordination
 - **[langchain_agents/](./langchain_agents/)** - Best for semantic query routing
 
 Each directory contains its own README with detailed setup instructions.
@@ -81,7 +84,7 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
 EOF
 
 # Run the application
-python main.py
+python src/main.py
 ```
 
 See each implementation's README for specific setup instructions.
@@ -170,13 +173,13 @@ To enable document analysis:
 ### Supported Companies
 
 Built-in mappings for major companies:
-- Apple (AAPL), Microsoft (MSFT), Google/Alphabet (GOOGL)
+- Apple (AAPL), Microsoft (MSFT), Google/Alphabet (GOOG)
 - Amazon (AMZN), Meta/Facebook (META), Tesla (TSLA)
 - NVIDIA (NVDA), Netflix (NFLX), Intel (INTC), IBM (IBM)
 
 Add new companies by:
 1. Adding PDF documents to `raw_data/`
-2. Updating the company-ticker mapping in the router/workflow file
+2. Updating `config/companies.json` with the company name and ticker
 
 ## 📚 Technologies Used
 
@@ -205,7 +208,7 @@ This project is ideal for:
 ## 📖 Documentation
 
 - [LlamaIndex Implementation](./llamaindex_agents/README.md) - Event-driven workflow architecture
-- [CrewAI Implementation](./crewai_agenets/README.md) - Crew-based agent coordination
+- [CrewAI Implementation](./crewai_agents/README.md) - Crew-based agent coordination
 - LangChain Implementation - Semantic routing (see `langchain_agents/CLAUDE.md`)
 
 ## 🤝 Contributing
