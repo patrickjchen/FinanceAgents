@@ -114,10 +114,25 @@ async def main():
     )
 
 async def cli_query_loop():
+    from shared_lib.constants import COMPANY_TICKER_MAP
     monitor = MonitorAgent()
+    # Wait for uvicorn startup logs to finish before showing the prompt
+    await asyncio.sleep(2)
+    tickers = sorted(set(COMPANY_TICKER_MAP.values()))
+    companies = ", ".join(tickers)
+    print("\n" + "=" * 60)
+    print("  FinanceAgents CLI (LlamaIndex)")
+    print("=" * 60)
+    print("Supported tickers for financial queries:")
+    print(f"  {companies}")
+    print("\nOther queries will be handled by the GeneralAgent.")
+    print("Type 'exit' or 'quit' to stop.\n")
     try:
         while True:
             query = await asyncio.to_thread(input, "Enter your question: ")
+            if query.strip().lower() in ("exit", "quit"):
+                print("Goodbye!")
+                break
             timestamp = datetime.now().isoformat()
             print(f"[{timestamp}] Sending query to RouterAgent..." + query)
             # start querying and await response
