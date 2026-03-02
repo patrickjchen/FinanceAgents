@@ -1,39 +1,14 @@
 # Shared constants used across all framework implementations
+# Loaded from config/companies.json
 
-COMPANY_TICKER_MAP = {
-    "apple": "AAPL",
-    "microsoft": "MSFT",
-    "google": "GOOGL",
-    "alphabet": "GOOGL",
-    "amazon": "AMZN",
-    "meta": "META",
-    "facebook": "META",
-    "tesla": "TSLA",
-    "nvidia": "NVDA",
-    "netflix": "NFLX",
-    "intel": "INTC",
-    "ibm": "IBM",
-}
+import json
+import os
 
-FINANCIAL_KEYWORDS = [
-    "stock", "stocks", "share", "shares", "price", "prices",
-    "earnings", "revenue", "profit", "loss", "income",
-    "invest", "investment", "investor", "investing",
-    "dividend", "dividends", "yield",
-    "market", "markets", "trading", "trade", "trader",
-    "buy", "sell", "hold", "bullish", "bearish", "bull", "bear",
-    "portfolio", "asset", "assets", "liability", "liabilities",
-    "sec", "filing", "filings", "10-k", "10-q", "10k", "10q",
-    "quarterly", "annual", "fiscal", "financial", "finance",
-    "balance sheet", "income statement", "cash flow",
-    "p/e", "ratio", "eps", "ebitda", "roi", "roe",
-    "analyst", "forecast", "valuation", "capitalization",
-    "ipo", "merger", "acquisition", "bond", "bonds",
-    "equity", "debt", "loan", "bank", "banking",
-    "nasdaq", "nyse", "s&p", "dow", "etf", "fund",
-    "hedge", "mutual", "index",
-    "volatility", "volume", "momentum",
-    "ticker", "symbol", "chart",
-    "report", "quarter", "guidance", "outlook",
-    "sentiment", "wall street",
-]
+_CONFIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config")
+_CONFIG_FILE = os.path.join(_CONFIG_DIR, "companies.json")
+
+with open(_CONFIG_FILE, "r") as f:
+    _config = json.load(f)
+
+COMPANY_TICKER_MAP = _config["company_ticker_map"]
+FINANCIAL_KEYWORDS = _config["financial_keywords"]

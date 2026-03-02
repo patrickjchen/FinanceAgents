@@ -10,13 +10,13 @@ This LangChain implementation features:
 - **Intelligent Router**: Similarity-based routing with configurable threshold (0.4)
 - **LangChain Framework**: Built on the LangChain ecosystem for agent orchestration
 - **Parallel Execution**: Async execution of multiple agents concurrently
-- **MCP Protocol**: Standardized communication between all agents
+- **Shared Schemas**: Standardized communication via shared_lib
 
 ## 🏗️ Architecture
 
 ### Core Components
 
-**RouterAgent** (`agents/router.py`)
+**RouterAgent** (`src/agents/router.py`)
 - Central orchestrator using semantic similarity for query classification
 - Extracts company names and maps them to stock tickers
 - Calculates similarity score against finance keywords
@@ -39,9 +39,9 @@ This LangChain implementation features:
 | **GeneralAgent** | Non-finance queries | GPT-3.5-turbo |
 | **MonitorAgent** | System logging | JSON-based health monitoring |
 
-### MCP Protocol
+### Shared Schemas
 
-Standardized Message Context Protocol for agent communication:
+Standardized communication schemas from `shared_lib/schemas.py`:
 
 - **MCPContext**: Shared context (user_query, companies, tickers, extracted_terms)
 - **MCPRequest**: Standardized request with context, timestamp, source
@@ -90,7 +90,7 @@ Standardized Message Context Protocol for agent communication:
 
 **Run FastAPI server + CLI:**
 ```bash
-python main.py
+python src/main.py
 ```
 
 This starts:
@@ -108,7 +108,7 @@ docker run -p 8000:8000 financeagents-backend
 
 **Using uvicorn directly:**
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
+uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### REST API Usage
@@ -144,7 +144,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 
 ### CLI Interface
 
-When running `python main.py`, interact directly in the terminal:
+When running `python src/main.py`, interact directly in the terminal:
 ```
 Enter your query (or 'exit' to quit): What is the current stock price of Tesla?
 ```
@@ -203,7 +203,7 @@ else:
 ### 3. Document Analysis (RAG)
 
 **FinanceAgent:**
-- Checks for existing ChromaDB index at `vector_db/chroma_index`
+- Checks for existing ChromaDB index at `working_dir/vector_db/chroma_index`
 - If missing, builds index from PDFs in `raw_data/` directory
 - Uses HuggingFace `all-MiniLM-L6-v2` embeddings
 - Stores metadata: file_name, year, company
@@ -224,7 +224,7 @@ Some agents use `loop.run_in_executor()` to wrap synchronous code.
 
 1. RouterAgent dispatches query to selected agents
 2. Each agent returns MCPResponse with data field
-3. `main.py` post-processes responses using `improve_agent_response()`
+3. `src/main.py` post-processes responses using `improve_agent_response()`
 4. GPT-3.5-turbo summarizes and cleans agent output
 5. Final response maps agent names to {summary: "..."}
 
@@ -232,28 +232,26 @@ Some agents use `loop.run_in_executor()` to wrap synchronous code.
 
 ```
 langchain_agents/
-├── agents/                    # Agent implementations
-│   ├── router.py             # Semantic routing and orchestration
-│   ├── finance_agent.py      # RAG document analysis
-│   ├── yahoo_agent.py        # Stock market data
-│   ├── sec_agent.py          # SEC filing analysis
-│   ├── reddit_agent.py       # Sentiment analysis
-│   ├── general_agent.py      # General queries
-│   └── monitor.py            # System monitoring
+├── src/                      # Source code
+│   ├── main.py               # FastAPI application entry
+│   └── agents/               # Agent implementations
+│       └── router.py         # Semantic routing and orchestration
 │
-├── mcp/                      # MCP protocol
-│   ├── schemas.py            # Request/response models
-│   └── context_store.py      # Context management (Redis-based)
+├── tests/                    # Test files
+│   └── sample_outputs/       # Sample agent response outputs
+│
+├── working_dir/              # Generated data (gitignored)
+│   ├── vector_db/            # ChromaDB persistence
+│   │   └── chroma_index/     # Vector embeddings
+│   └── logs/                 # Monitor logs
 │
 ├── raw_data/                 # Financial documents (PDFs)
-├── vector_db/                # ChromaDB persistence
-│   └── chroma_index/         # Vector embeddings
-│
-├── main.py                   # FastAPI application entry
 ├── requirements.txt          # Python dependencies
 ├── dockerfile                # Docker configuration
 └── README.md                 # This file
 ```
+
+> **Note:** Shared agent implementations (FinanceAgent, YahooAgent, RedditAgent, SECAgent, GeneralAgent, MonitorAgent) and communication schemas live in the top-level `shared_lib/` directory at the repository root.
 
 ## 🔧 Configuration
 
@@ -267,7 +265,7 @@ langchain_agents/
 
 ### Company/Ticker Mapping
 
-Defined in `agents/router.py`:
+Defined in `src/agents/router.py`:
 ```python
 COMPANY_TICKER_MAP = {
     "apple": "AAPL",
@@ -338,24 +336,24 @@ Each agent's raw output is processed by GPT-3.5-turbo to:
 ### Running Tests
 
 ```bash
-pytest
+pytest tests/
 ```
 
 ### Adding New Agents
 
-1. Create agent file in `agents/` directory
+1. Create agent file in `shared_lib/agents/` directory
 2. Implement MCP protocol interface:
    ```python
    async def run(self, mcp_request: MCPRequest) -> MCPResponse:
        # Your agent logic
        return MCPResponse(data={...})
    ```
-3. Add agent to router logic in `agents/router.py`
+3. Add agent to router logic in `src/agents/router.py`
 4. Update agent selection criteria
 
 ### Modifying Semantic Threshold
 
-Adjust the similarity threshold in `agents/router.py`:
+Adjust the similarity threshold in `src/agents/router.py`:
 ```python
 # Default: 0.4
 if similarity_score >= 0.4:  # Make stricter: 0.6, more lenient: 0.3
@@ -367,15 +365,15 @@ if similarity_score >= 0.4:  # Make stricter: 0.6, more lenient: 0.3
 **Rebuild index:**
 ```bash
 # Delete existing index
-rm -rf vector_db/chroma_index
+rm -rf working_dir/vector_db/chroma_index
 
 # Restart application (will rebuild automatically)
-python main.py
+python src/main.py
 ```
 
 ## 📊 Monitoring and Logging
 
-- All agent activities logged to `monitor_logs.json`
+- All agent activities logged to `working_dir/logs/monitor_logs.json`
 - JSON lines format with timestamps, queries, responses, status
 - MonitorAgent tracks system health and performance
 
@@ -408,7 +406,7 @@ python main.py
 **"Vector database not found"**
 - Ensure PDFs are in `raw_data/` directory
 - Database builds automatically on first run
-- Check write permissions for `vector_db/` directory
+- Check write permissions for `working_dir/vector_db/` directory
 
 **"OPENAI_API_KEY not found"**
 - Verify `.env` file exists
@@ -432,14 +430,14 @@ python main.py
 
 **"CORS errors"**
 - CORS is enabled for all origins by default
-- Adjust settings in `main.py` if needed for production
+- Adjust settings in `src/main.py` if needed for production
 
 ## 🔗 Related Implementations
 
 This is the **LangChain** implementation. See the parent directory for other implementations:
 
 - **[LlamaIndex](../llamaindex_agents/README.md)** - Workflow-based with event-driven architecture
-- **[CrewAI](../crewai_agenets/README.md)** - Crew-based agent coordination
+- **[CrewAI](../crewai_agents/README.md)** - Crew-based agent coordination
 
 All implementations share the same agent types and data sources but differ in orchestration approach.
 

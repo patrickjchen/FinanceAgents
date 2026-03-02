@@ -1,11 +1,13 @@
 import json
+import os
 from datetime import datetime
 from typing import Optional
 
 
 class MonitorAgent:
-    def __init__(self, log_file="monitor_logs.json"):
+    def __init__(self, log_file="working_dir/logs/monitor_logs.json"):
         self.log_file = log_file
+        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
 
     def log_health(self, agent_name: str, status: str, details: str = ""):
         """Logs agent health status with timestamps."""

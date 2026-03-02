@@ -114,7 +114,7 @@ Each agent focuses on a specific data source:
 Run the system with environment variables:
 
 ```bash
-env $(cat ./.env) python main.py
+env $(cat ./.env) python src/main.py
 ```
 
 You'll see:
@@ -273,7 +273,7 @@ FinanceAgents includes built-in mappings for major companies:
 
 **Add new companies:**
 1. Add PDF documents to `./raw_data/` (format: `company-year.pdf`)
-2. Update `company_ticker_map` in `financeagents_workflow.py`
+2. Update `company_ticker_map` in `src/agents/router.py`
 
 ### Agent Selection
 
@@ -289,10 +289,10 @@ Finance keywords: stock, investment, portfolio, earnings, P/E ratio, dividend, e
 
 ### Data Storage
 
-- **Vector Database**: `./vector_db/llamaindex_storage/` (FinanceAgent RAG index)
-- **Yahoo Index**: `./financial_data/yahoo_index/` (cached market data)
-- **CSV Exports**: `./financial_data/csv/` (stock data exports)
-- **Logs**: `monitor_logs.json` (agent performance and errors)
+- **Vector Database**: `./working_dir/vector_db/llamaindex_storage/` (FinanceAgent RAG index)
+- **Yahoo Index**: `./working_dir/financial_data/yahoo_index/` (cached market data)
+- **CSV Exports**: `./working_dir/financial_data/csv/` (stock data exports)
+- **Logs**: `working_dir/logs/monitor_logs.json` (agent performance and errors)
 
 ## 🧪 Testing
 
@@ -300,13 +300,13 @@ Run tests to verify system functionality:
 
 ```bash
 # Test workflow system
-python test_workflow.py
+python tests/test_workflow.py
 
 # Test basic agent functionality
-python test_implementation.py
+python tests/test_implementation.py
 
 # Test Yahoo agent with CSV capabilities
-python test_yahoo_enhanced.py
+python tests/test_yahoo_enhanced.py
 ```
 
 ## 📊 Performance
@@ -324,7 +324,7 @@ python test_yahoo_enhanced.py
 
 **"OPENAI_API_KEY not found"**
 - Ensure `.env` file exists with valid API key
-- Run with: `env $(cat ./.env) python main.py`
+- Run with: `env $(cat ./.env) python src/main.py`
 
 **"No PDF documents found"**
 - Create `./raw_data/` directory
@@ -342,31 +342,40 @@ python test_yahoo_enhanced.py
 - Verify API keys are valid
 
 **Agent-specific errors**
-- Check `monitor_logs.json` for detailed error logs
+- Check `working_dir/logs/monitor_logs.json` for detailed error logs
 - Verify all dependencies installed: `pip install -r requirements.txt`
 
 ## 📁 Project Structure
 
 ```
 llamaindex_agents/
-├── main.py                    # FastAPI server & CLI entry point
-├── financeagents_workflow.py       # Main workflow orchestration
-├── schemas.py                 # MCP protocol definitions
-├── monitor.py                 # Logging and health monitoring
+├── src/
+│   ├── main.py                    # FastAPI server & CLI entry point
+│   ├── finance_agent.py           # RAG-based document analysis
+│   ├── yahoo_agent_enhanced.py    # Stock market data
+│   ├── reddit_agent.py            # Social sentiment analysis
+│   └── agents/
+│       ├── __init__.py
+│       └── router.py              # Main workflow orchestration
 │
-├── finance_agent.py           # RAG-based document analysis
-├── yahoo_agent_enhanced.py    # Stock market data
-├── sec_agent.py               # SEC filing analysis
-├── reddit_agent.py            # Social sentiment analysis
-├── general_agent.py           # General queries
+├── tests/
+│   ├── test_workflow.py           # Workflow system tests
+│   ├── test_implementation.py     # Basic agent tests
+│   ├── test_yahoo_enhanced.py     # Yahoo agent tests
+│   ├── simple_test.py             # Simple tests
+│   ├── workflow_design.py         # Workflow design tests
+│   ├── debug_agents.py            # Agent debugging
+│   └── debug_router.py            # Router debugging
 │
-├── requirements.txt           # Python dependencies
-├── .env                       # Environment variables (create this)
+├── working_dir/
+│   ├── vector_db/                 # Vector database storage
+│   ├── financial_data/            # Market data cache & exports
+│   └── logs/
+│       └── monitor_logs.json      # System logs
 │
-├── raw_data/                  # PDF documents (create this)
-├── vector_db/                 # Vector database storage
-├── financial_data/            # Market data cache & exports
-└── monitor_logs.json          # System logs
+├── raw_data/                      # PDF documents (create this)
+├── requirements.txt               # Python dependencies
+└── .env                           # Environment variables (create this)
 ```
 
 ## 🔍 How It Works
@@ -375,7 +384,7 @@ llamaindex_agents/
 
 1. PDF documents in `./raw_data/` are processed by FinanceAgent
 2. Text is embedded using HuggingFace "all-MiniLM-L6-v2" model
-3. Vectors stored in ChromaDB for semantic search
+3. Vectors stored in ChromaDB at `./working_dir/vector_db/` for semantic search
 4. Queries retrieve relevant document passages
 5. GPT-3.5-turbo synthesizes answers from retrieved context
 

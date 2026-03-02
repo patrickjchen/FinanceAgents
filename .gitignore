@@ -35,6 +35,10 @@ env/
 .env.local
 .env.*.local
 
+# Working directories (generated data, vector DBs, logs)
+**/working_dir/
+!**/working_dir/logs/.gitkeep
+
 # Vector databases
 vector_db/
 **/vector_db/
