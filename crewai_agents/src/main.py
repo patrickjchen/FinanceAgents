@@ -126,15 +126,20 @@ async def cli_query_loop():
     await asyncio.sleep(2)
     tickers = sorted(set(COMPANY_TICKER_MAP.values()))
     companies = ", ".join(tickers)
-    print("\n" + "=" * 60)
-    print("  FinanceAgents CLI (CrewAI)")
-    print("=" * 60)
-    print("Supported tickers for financial queries:")
-    print(f"  {companies}")
-    print("\nOther queries will be handled by the GeneralAgent.")
-    print("Type 'exit' or 'quit' to stop.\n")
+    sep = "=" * 60
+    banner = f"""
+{sep}
+  FinanceAgents CLI (CrewAI)
+{sep}
+Supported tickers for financial queries:
+  {companies}
+
+Other queries will be handled by the GeneralAgent.
+Type 'exit' or 'quit' to stop.
+"""
     try:
         while True:
+            print(banner)
             query = await asyncio.to_thread(input, "Enter your question: ")
             if query.strip().lower() in ("exit", "quit"):
                 print("Goodbye!")
