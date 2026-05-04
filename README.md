@@ -1,6 +1,6 @@
 # FinanceAgents
 
-An AI-powered financial analysis system that provides comprehensive investment insights by combining data from multiple sources. This project demonstrates the same financial analysis system implemented using three different agent frameworks: **LlamaIndex**, **CrewAI**, and **LangChain**.
+An AI-powered financial analysis system that provides comprehensive investment insights by combining data from multiple sources. This project demonstrates the same financial analysis system implemented using four different agent frameworks: **LlamaIndex**, **CrewAI**, **LangChain**, and **AG2** (formerly AutoGen).
 
 ## 🎯 What Does FinanceAgents Do?
 
@@ -20,13 +20,14 @@ All in seconds, giving you:
 
 ## 📦 Project Structure
 
-This repository contains three separate implementations of the same financial analysis system:
+This repository contains four separate implementations of the same financial analysis system:
 
 ```
 FinanceAgents/
 ├── llamaindex_agents/     # LlamaIndex Workflow implementation
 ├── crewai_agents/         # CrewAI implementation
 ├── langchain_agents/      # LangChain implementation
+├── ag2_agents/            # AG2 (formerly AutoGen) implementation
 ├── shared_lib/            # Shared agents, schemas, and utilities
 ├── config/                # Configuration data files
 ├── raw_data/              # Financial PDF documents
@@ -40,8 +41,9 @@ FinanceAgents/
 | **LlamaIndex** | Event-driven workflow | Declarative workflow steps | Robust parallel execution, built-in timeout handling |
 | **CrewAI** | Router-based | Concurrent async execution | Agent crew coordination, MCP protocol |
 | **LangChain** | Router-based | Semantic similarity routing | Query classification via sentence transformers |
+| **AG2** | ConversableAgent + GroupChat | Concurrent async execution (deterministic router) + LLM-driven group chat demo | Tool-registration pattern, coordinator/executor split |
 
-All three implementations share:
+All four implementations share:
 - **Specialized Agents**: Finance, Yahoo, SEC, Reddit, General agents
 - **RAG Capabilities**: Vector database with HuggingFace embeddings
 - **Dual Interface**: REST API + Interactive CLI
@@ -57,6 +59,7 @@ Each implementation is self-contained in its own directory. Navigate to the impl
 - **[llamaindex_agents/](./llamaindex_agents/README.md)** - Recommended for production use (most robust)
 - **[crewai_agents/](./crewai_agents/README.md)** - Great for crew-based agent coordination
 - **[langchain_agents/](./langchain_agents/)** - Best for semantic query routing
+- **[ag2_agents/](./ag2_agents/README.md)** - AG2 / AutoGen ConversableAgent + GroupChat patterns
 
 Each directory contains its own README with detailed setup instructions.
 
@@ -188,6 +191,7 @@ Add new companies by:
 - **LlamaIndex**: Workflow orchestration and RAG
 - **CrewAI**: Multi-agent crew coordination
 - **LangChain**: Agent chaining and semantic routing
+- **AG2**: ConversableAgent + GroupChatManager with tool registration
 
 ## 🎓 Learning Resources
 
@@ -203,6 +207,7 @@ This project is ideal for:
 - [LlamaIndex Implementation](./llamaindex_agents/README.md) - Event-driven workflow architecture
 - [CrewAI Implementation](./crewai_agents/README.md) - Crew-based agent coordination
 - LangChain Implementation - Semantic routing (see `langchain_agents/CLAUDE.md`)
+- [AG2 Implementation](./ag2_agents/README.md) - ConversableAgent + GroupChat patterns
 
 ## 🤝 Contributing
 
