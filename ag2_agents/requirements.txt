@@ -1,0 +1,8 @@
+-r ../requirements.txt
+
+# AG2 (formerly AutoGen) multi-agent framework
+# https://github.com/ag2ai/ag2
+ag2
+
+# AG2 OpenAI integration
+openai
