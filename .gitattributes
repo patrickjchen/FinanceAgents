@@ -1,0 +1,10 @@
+# Force Python files
+*.py linguist-language=Python
+
+# Mark HTML as documentation (exclude from stats)
+*.html linguist-documentation
+
+# Ignore generated files (optional)
+docs/* linguist-documentation
+dist/* linguist-generated
+build/* linguist-generated
