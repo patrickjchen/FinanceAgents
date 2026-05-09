@@ -8,3 +8,13 @@
 docs/* linguist-documentation
 dist/* linguist-generated
 build/* linguist-generated
+
+# Treat SEC/raw filings as generated data, not source language
+raw_data/*.htm linguist-generated=true
+raw_data/*.html linguist-generated=true
+
+# Ignore vector DB artifacts in language statistics
+**/vector_db/** linguist-generated=true
+
+# Force Python files to Python
+*.py linguist-language=Python

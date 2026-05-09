@@ -80,3 +80,12 @@ htmlcov/
 output
 output.*
 *.llam
+
+# Vector databases / generated indexes
+**/vector_db/
+*.sqlite3
+*.bin
+
+# Raw SEC filings / downloaded data
+raw_data/*.htm
+raw_data/*.html
