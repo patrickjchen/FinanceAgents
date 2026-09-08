@@ -6,17 +6,17 @@ import json
 from typing import List, Dict, Any
 from llama_index.core import VectorStoreIndex, Document, StorageContext, load_index_from_storage
 from llama_index.core.readers import SimpleDirectoryReader
-from llama_index.llms.openai import OpenAI
 from llama_index.core import Settings
 from shared_lib.schemas import MCPRequest, MCPResponse
 from shared_lib.monitor import MonitorAgent
+from llm_settings import make_llm
 
 class YahooAgentEnhanced:
     def __init__(self):
         self.monitor = MonitorAgent()
 
         # Configure LlamaIndex settings
-        Settings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
+        Settings.llm = make_llm(temperature=0.1)
 
         # Set up directories
         self.data_dir = "./working_dir/financial_data"
@@ -294,4 +294,4 @@ Key Metrics:
 
     def query_historical_data(self, query: str) -> str:
         """Public method to query historical data"""
-        return self._query_financial_data(query)
+        return self._query_financial_data(query)

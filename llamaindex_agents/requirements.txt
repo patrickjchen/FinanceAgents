@@ -3,6 +3,7 @@
 # LlamaIndex framework
 llama-index-core
 llama-index-llms-openai
+llama-index-llms-openai-like   # OpenRouter / any OpenAI-compatible endpoint
 llama-index-embeddings-huggingface
 llama-index-workflow
 llama-index-readers-file

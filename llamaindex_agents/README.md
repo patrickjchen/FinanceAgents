@@ -99,6 +99,9 @@ Each agent focuses on a specific data source:
    REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
    ```
 
+   To use OpenRouter instead of OpenAI, set `LLM_PROVIDER=openrouter`, `OPENROUTER_API_KEY=...` and optionally `LLM_MODEL=<openrouter model id>`. See the root README for all LLM variables.
+   (OpenRouter models are loaded through `OpenAILike`; install `llama-index-llms-openai-like`, included in `requirements.txt`.)
+
 4. **Prepare document data** (optional)
 
    Place PDF financial documents in `./raw_data/` directory:

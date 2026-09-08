@@ -2,10 +2,7 @@ from datetime import datetime
 from shared_lib.monitor import MonitorAgent
 import os
 
-try:
-    from langchain_huggingface import HuggingFaceEmbeddings
-except ImportError:
-    from langchain_community.embeddings import HuggingFaceEmbeddings
+from shared_lib.embeddings import get_langchain_embeddings
 
 try:
     from langchain_chroma import Chroma
@@ -22,7 +19,7 @@ from shared_lib.schemas import MCPRequest, MCPResponse
 class FinanceAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        self.embeddings = get_langchain_embeddings()  # cached per process
         self.vector_db_path = "working_dir/vector_db/chroma_index"
         self.retriever = self._get_retriever()
         self.prompts = [
@@ -188,11 +185,10 @@ class FinanceAgent:
         )
 
     def _call_llm(self, prompt: str) -> str:
-        import openai
-        api_key = os.getenv("OPENAI_API_KEY")
-        client = openai.OpenAI(api_key=api_key)
+        from shared_lib.llm_config import require_llm_client, get_llm_model
+        client = require_llm_client()
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=get_llm_model(),
             messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content

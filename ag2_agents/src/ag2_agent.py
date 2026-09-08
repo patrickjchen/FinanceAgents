@@ -28,6 +28,7 @@ from shared_lib.agents.general_agent import GeneralAgent
 from shared_lib.agents.reddit_agent import RedditAgent
 from shared_lib.agents.yahoo_agent import YahooAgent
 from shared_lib.agents.sec_agent import SECAgent
+from shared_lib.llm_config import get_llm_settings
 
 # AG2 (formerly AutoGen). The package was renamed; the imports below match
 # the post-rebrand layout. If using legacy autogen, the same symbols are
@@ -99,11 +100,10 @@ def general_tool(user_query: str) -> str:
 # ---- AG2 agent definitions ---------------------------------------------------
 
 def _llm_config() -> Dict[str, Any]:
-    api_key = os.getenv("OPENAI_API_KEY")
+    # Provider (OpenAI or OpenRouter), key, base_url and model all come from
+    # the environment via shared_lib.llm_config; see that module for the knobs.
     return {
-        "config_list": [
-            {"model": "gpt-3.5-turbo", "api_key": api_key},
-        ],
+        "config_list": [get_llm_settings().ag2_config_entry()],
         "temperature": 0.1,
         "cache_seed": None,
     }
