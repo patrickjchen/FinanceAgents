@@ -50,6 +50,8 @@ REDDIT_CLIENT_ID=...
 REDDIT_CLIENT_SECRET=...
 ```
 
+To use OpenRouter instead of OpenAI, set `LLM_PROVIDER=openrouter`, `OPENROUTER_API_KEY=...` and optionally `LLM_MODEL=<openrouter model id>`. See the root README for all LLM variables.
+
 ### Run
 
 ```bash

@@ -5,21 +5,21 @@ from datetime import datetime
 from typing import List, Dict, Any
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
 from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.llms.openai import OpenAI
+from shared_lib.embeddings import get_llamaindex_embedding
 from llama_index.core import Settings
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.postprocessor import SimilarityPostprocessor
 from shared_lib.schemas import MCPRequest, MCPResponse
 from shared_lib.monitor import MonitorAgent
+from llm_settings import make_llm
 
 class FinanceAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
 
         # Configure LlamaIndex settings
-        Settings.embed_model = HuggingFaceEmbedding(model_name="all-MiniLM-L6-v2")
-        Settings.llm = OpenAI(model="gpt-3.5-turbo", temperature=0.1)
+        Settings.embed_model = get_llamaindex_embedding()  # cached per process
+        Settings.llm = make_llm(temperature=0.1)
 
         self.persist_dir = "./working_dir/vector_db/llamaindex_storage"
         self.raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
@@ -213,4 +213,4 @@ class FinanceAgent:
             ]
         except Exception as e:
             self.monitor.log_error("FinanceAgent", f"Error getting company documents: {e}")
-            return []
+            return []

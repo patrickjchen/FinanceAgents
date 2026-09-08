@@ -6,18 +6,15 @@ from shared_lib.monitor import MonitorAgent
 import time
 import warnings
 from shared_lib.schemas import MCPRequest, MCPResponse
-import os
-import openai
+from shared_lib.llm_config import require_llm_client, get_llm_model
 warnings.filterwarnings('ignore')
 
 
 class YahooAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in .env file")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        self.client = require_llm_client()  # OpenAI or OpenRouter, per LLM_PROVIDER
+        self.model = get_llm_model()
 
     def run(self, request: MCPRequest) -> MCPResponse:
         start_time = datetime.now()
@@ -64,12 +61,12 @@ class YahooAgent:
                             f"Provide a brief professional summary and any notable trends."
                         )
                         response = self.client.chat.completions.create(
-                            model="gpt-3.5-turbo",
+                            model=self.model,
                             messages=[{"role": "user", "content": prompt}]
                         )
                         summary = response.choices[0].message.content
                     except Exception as e:
-                        summary = f"OpenAI summary error: {e}"
+                        summary = f"LLM summary error: {e}"
                 response_data.append({
                     "ticker": ticker,
                     "statistics": stats,

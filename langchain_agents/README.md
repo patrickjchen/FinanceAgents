@@ -259,7 +259,10 @@ langchain_agents/
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for GPT models | Yes |
+| `OPENAI_API_KEY` | OpenAI API key for GPT models | Yes, unless using OpenRouter |
+| `LLM_PROVIDER` | `openai` (default) or `openrouter` | No |
+| `OPENROUTER_API_KEY` | OpenRouter key when `LLM_PROVIDER=openrouter` | No |
+| `LLM_MODEL` | Model id override (e.g. `deepseek/deepseek-chat` on OpenRouter) | No |
 | `REDDIT_CLIENT_ID` | Reddit API client ID | Optional |
 | `REDDIT_CLIENT_SECRET` | Reddit API client secret | Optional |
 

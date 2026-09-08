@@ -67,7 +67,7 @@ Each directory contains its own README with detailed setup instructions.
 
 All implementations require:
 - Python 3.8+
-- OpenAI API key
+- OpenAI API key (or an OpenRouter key, see below)
 - Reddit API credentials (optional, for sentiment analysis)
 
 ### Quick Start (LlamaIndex Example)
@@ -158,6 +158,26 @@ REDDIT_CLIENT_ID=your_reddit_client_id_here
 REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
 ```
 
+#### Using OpenRouter instead of OpenAI
+
+All LLM calls go through the OpenAI-compatible chat API, so you can point the whole system at [OpenRouter](https://openrouter.ai) (one key, many models) with environment variables only:
+
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-v1-...
+LLM_MODEL=deepseek/deepseek-chat        # any OpenRouter model id; default openai/gpt-3.5-turbo
+```
+
+| Variable | Description |
+|----------|-------------|
+| `LLM_PROVIDER` | `openai` (default) or `openrouter`. Auto-selects `openrouter` when only `OPENROUTER_API_KEY` is set. |
+| `LLM_MODEL` | Model id for the chosen provider. OpenRouter ids carry a vendor prefix, e.g. `anthropic/claude-sonnet-4`. |
+| `OPENROUTER_API_KEY` | OpenRouter key (used when provider is `openrouter`). |
+| `OPENROUTER_BASE_URL` | Defaults to `https://openrouter.ai/api/v1`. |
+| `OPENROUTER_SITE_URL` / `OPENROUTER_APP_NAME` | Optional `HTTP-Referer` / `X-Title` headers for OpenRouter's dashboard. |
+
+Provider resolution lives in `shared_lib/llm_config.py` and applies to every implementation.
+
 ### Adding Financial Documents
 
 To enable document analysis:
@@ -180,7 +200,7 @@ Add new companies by:
 ## 📚 Technologies Used
 
 ### Common Technologies
-- **OpenAI GPT-3.5/4**: Language models for analysis and synthesis
+- **OpenAI GPT-3.5/4** (or any model via **OpenRouter**): Language models for analysis and synthesis
 - **HuggingFace**: Embedding models for semantic search
 - **ChromaDB**: Vector database for document storage
 - **FastAPI**: REST API framework

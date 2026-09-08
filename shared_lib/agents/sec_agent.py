@@ -1,18 +1,18 @@
 import requests
 import json
 import os
-import openai
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from shared_lib.schemas import MCPRequest, MCPResponse
 from shared_lib.monitor import MonitorAgent
+from shared_lib.llm_config import get_llm_client, get_llm_model, missing_key_message
 
 
 class SECAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.client = openai.OpenAI(api_key=self.api_key) if self.api_key else None
+        self.client = get_llm_client()  # None when no LLM key is configured
+        self.model = get_llm_model()
         self.sec_api_base = "https://data.sec.gov/api/xbrl"
         self.headers = {
             "User-Agent": "FinanceAgents SEC Agent contact@example.com"
@@ -103,7 +103,7 @@ class SECAgent:
                 return f"Unable to analyze SEC data: {sec_data['error']}"
 
             if not self.client:
-                return "LLM analysis unavailable (OPENAI_API_KEY not set)"
+                return f"LLM analysis unavailable ({missing_key_message()})"
 
             company_info = sec_data.get("entityName", company)
             cik = sec_data.get("cik", "Unknown")
@@ -125,7 +125,7 @@ class SECAgent:
             """
 
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1
             )

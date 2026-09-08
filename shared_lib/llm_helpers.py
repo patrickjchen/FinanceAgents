@@ -1,6 +1,5 @@
-import os
 import asyncio
-import openai
+from shared_lib.llm_config import get_llm_client, get_llm_model
 
 AGENT_TIPS = {
     "reddit": "Reddit agent response is related to stock market topics on social media with sentiment analysis.",
@@ -25,13 +24,12 @@ async def improve_agent_response(agent: str, content: str, agent_tips: dict = No
         f"Include the agent name in the summary.\n\nResponse:\n{content}"
     )
     try:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        client = get_llm_client()
+        if client is None:
             return content  # fallback
-        client = openai.OpenAI(api_key=api_key)
         response = await asyncio.to_thread(
             lambda: client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=get_llm_model(),
                 messages=[{"role": "user", "content": prompt}]
             )
         )
@@ -62,13 +60,12 @@ async def generate_comprehensive_summary(user_query: str, agent_results: dict) -
         f"Keep the summary concise but informative."
     )
     try:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        client = get_llm_client()
+        if client is None:
             return "Summary unavailable (no API key)."
-        client = openai.OpenAI(api_key=api_key)
         response = await asyncio.to_thread(
             lambda: client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=get_llm_model(),
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
             )

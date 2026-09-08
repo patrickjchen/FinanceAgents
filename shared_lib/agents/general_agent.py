@@ -1,4 +1,3 @@
-import openai
 from dotenv import load_dotenv
 import os
 from shared_lib.monitor import MonitorAgent
@@ -7,6 +6,7 @@ import traceback
 import json
 import random
 from shared_lib.schemas import MCPRequest, MCPResponse
+from shared_lib.llm_config import require_llm_client, get_llm_model
 
 # Load environment variables
 load_dotenv()  # Loads from .env file
@@ -14,10 +14,8 @@ load_dotenv()  # Loads from .env file
 class GeneralAgent:
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.api_key = os.getenv("OPENAI_API_KEY")  # Read from .env
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found in .env file")
-        self.client = openai.OpenAI(api_key=self.api_key)
+        self.client = require_llm_client()  # OpenAI or OpenRouter, per LLM_PROVIDER
+        self.model = get_llm_model()
         self.prompts = [
             "As a professional documentary writer, answer the following question in a friendly and informative tone:",
             "As a scientist, provide a clear and friendly explanation to the following question:",
@@ -41,7 +39,7 @@ class GeneralAgent:
             self.monitor.log_health("GeneralAgent", "Received query", f"Timestamp: {start_time}, Query: {user_query}")
             full_prompt = f"{prompt} {user_query}"
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=self.model,
                 messages=[{"role": "user", "content": full_prompt}]
             )
             answer = response.choices[0].message.content
