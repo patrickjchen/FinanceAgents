@@ -4,19 +4,13 @@ A Next.js web UI for the FinanceAgents backend: a chat page that sends questions
 
 ## Connecting to the backend
 
-The chat page posts to `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`, the LangChain implementation). Start one backend from its own directory, e.g.
+The chat page posts to `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`). All four backends listen on 8000, so no configuration is needed unless you move the backend elsewhere. Start one backend from its own directory, e.g.
 
 ```bash
 cd ../langchain_agents && env $(cat ../env.all) python src/main.py
 ```
 
-then copy `.env.example` to `.env.local` and adjust the port if you run a different implementation:
-
-| Backend | Port |
-|---|---|
-| langchain_agents | 8000 |
-| crewai_agents, llamaindex_agents | 8001 |
-| ag2_agents | 8002 |
+(or any of `crewai_agents`, `llamaindex_agents`, `ag2_agents`; one at a time, since they share the port). To point at a backend on another host or port, copy `.env.example` to `.env.local` and edit it.
 
 The backend replies with `{"response": {AgentName: {"summary": "..."}, "FinalSummary": {...}}}`, which the chat renders one block per agent.
 

@@ -30,7 +30,7 @@ app = FastAPI(
     version="0.0.1",
     contact={
         "name": "FinanceAgents",
-        "url": "https://localhost:8001",
+        "url": "https://localhost:8000",
     },
 )
 
@@ -111,7 +111,7 @@ async def get_query_response(query: str) -> dict:
         return {}
 
 async def main():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8001, log_level="info")
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
     server = uvicorn.Server(config)
 
     # Run both CLI and FastAPI

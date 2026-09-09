@@ -56,7 +56,7 @@ To use OpenRouter instead of OpenAI, set `LLM_PROVIDER=openrouter`, `OPENROUTER_
 ### Run
 
 ```bash
-# Local: starts FastAPI on :8002 and an interactive CLI
+# Local: starts FastAPI on :8000 and an interactive CLI
 env $(cat ../.env) python src/main.py
 
 # Or run the AG2-native group-chat demo directly
@@ -67,7 +67,7 @@ python src/ag2_agent.py "Tell me about Tesla stock"
 
 ```bash
 docker build -t financeagents-ag2 .
-docker run -p 8002:8002 financeagents-ag2
+docker run -p 8000:8000 financeagents-ag2
 ```
 
 ## API
@@ -80,14 +80,14 @@ docker run -p 8002:8002 financeagents-ag2
 
 `GET /health`, `GET /agents` — service introspection.
 
-Swagger UI: `http://localhost:8002/docs`
+Swagger UI: `http://localhost:8000/docs`
 
 ## Project Structure
 
 ```
 ag2_agents/
 ├── src/
-│   ├── main.py                # FastAPI server + CLI (port 8002)
+│   ├── main.py                # FastAPI server + CLI (port 8000)
 │   ├── ag2_agent.py           # AG2-native ConversableAgent + GroupChat demo
 │   └── agents/
 │       ├── ag2_router.py      # Deterministic router + APIRouter
@@ -115,9 +115,11 @@ This mirrors how `crewai_agents/src/crew_agent.py` demonstrates CrewAI patterns 
 | Implementation | HTTP port |
 |----------------|-----------|
 | LangChain      | 8000      |
-| CrewAI         | 8001      |
-| LlamaIndex     | 8001      |
-| **AG2**        | **8002**  |
+| CrewAI         | 8000      |
+| LlamaIndex     | 8000      |
+| **AG2**        | **8000**  |
+
+All four share port 8000 so the frontend needs no per-backend configuration; run one backend at a time.
 
 ## Disclaimer
 
