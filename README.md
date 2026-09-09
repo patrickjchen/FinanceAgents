@@ -96,7 +96,7 @@ npm ci
 npm run dev          # http://localhost:3000
 ```
 
-Set `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`) to target another implementation's port. Details in `frontend/README.md`.
+All four backends listen on port 8000, so the UI works with whichever one is running. Set `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`) only if the backend lives elsewhere. Details in `frontend/README.md`.
 
 ## 🏗️ Common Architecture
 

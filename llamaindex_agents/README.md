@@ -136,7 +136,7 @@ Enter your financial question (or 'quit' to exit):
 ```
 
 The system starts:
-- **FastAPI server** on `http://0.0.0.0:8001` (for API access)
+- **FastAPI server** on `http://0.0.0.0:8000` (for API access)
 - **Interactive CLI** for direct queries
 
 ### Example Queries
@@ -227,13 +227,13 @@ Type `quit`, `exit`, or `q` to stop the CLI.
 
 ## 🌐 API Access
 
-FinanceAgents also runs as a REST API server on port 8001.
+FinanceAgents also runs as a REST API server on port 8000.
 
 ### Endpoints
 
 **POST `/query`** - Process financial queries
 ```bash
-curl -X POST http://localhost:8001/query \
+curl -X POST http://localhost:8000/query \
   -H "Content-Type: application/json" \
   -d '{"query": "What is Apple stock performance?"}'
 ```
@@ -257,12 +257,12 @@ Response:
 
 **GET `/health`** - Health check
 ```bash
-curl http://localhost:8001/health
+curl http://localhost:8000/health
 ```
 
 **GET `/agents`** - List available agents
 ```bash
-curl http://localhost:8001/agents
+curl http://localhost:8000/agents
 ```
 
 ## 🔧 Configuration
