@@ -2,7 +2,9 @@
 
 # AG2 (formerly AutoGen) multi-agent framework
 # https://github.com/ag2ai/ag2
-ag2
+# ag2 1.0 replaced the ConversableAgent/GroupChat API (and no longer imports as
+# `autogen`); src/ag2_agent.py targets the 0.x line.
+ag2>=0.9,<1.0
 
 # AG2 OpenAI integration
 openai

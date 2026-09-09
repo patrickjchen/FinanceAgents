@@ -17,7 +17,8 @@ This is one of four parallel implementations in the FinanceAgents repository (al
 - Useful as a reference; main.py uses the deterministic router for predictable latency.
 
 **Specialized agents** (from `shared_lib/agents/`)
-- `FinanceAgent` — RAG over internal PDFs (ChromaDB + HuggingFace embeddings).
+- `RAGAgent` — passage retrieval over internal PDFs (ChromaDB + HuggingFace embeddings), no LLM.
+- `FinanceAgent` — analyst LLM summary built on `RAGAgent.retrieve()`.
 - `YahooAgent` — 30-day stock statistics from Yahoo Finance.
 - `SECAgent` — SEC filing summaries.
 - `RedditAgent` — Reddit sentiment via PRAW.

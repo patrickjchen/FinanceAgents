@@ -77,6 +77,7 @@ async def get_query_response(query: str) -> dict:
                 agent_key_map = {
                     "reddit": "RedditAgent",
                     "finance": "FinanceAgent",
+                    "rag": "RAGAgent",
                     "yahoo": "YahooAgent",
                     "sec": "SecAgent",
                 }
@@ -169,7 +170,8 @@ async def health_check():
 async def list_agents():
     return {
         "available_agents": [
-            "FinanceAgent - Internal document analysis using RAG",
+            "RAGAgent - Passage retrieval over internal filings (ChromaDB + HuggingFace embeddings)",
+            "FinanceAgent - Internal document analysis (LLM summary over RAGAgent passages)",
             "YahooAgent - Real-time stock data",
             "SECAgent - SEC filing analysis",
             "RedditAgent - Async social media sentiment analysis",

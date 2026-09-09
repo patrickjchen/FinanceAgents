@@ -55,7 +55,12 @@ class RouterAgent:
         """Run an agent with error handling"""
         try:
             # Local LlamaIndex-specific agents
-            if agent_name == "FinanceAgent":
+            if agent_name == "RAGAgent":
+                from rag_agent import RAGAgent
+                agent = RAGAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            elif agent_name == "FinanceAgent":
                 from finance_agent import FinanceAgent
                 agent = FinanceAgent()
                 loop = asyncio.get_running_loop()
