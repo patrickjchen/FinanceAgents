@@ -1,126 +1,61 @@
-# FinanceAgents — AG2 Implementation
+# FinanceAgents - AG2 Implementation
 
-A FastAPI-based financial analysis system that uses [AG2](https://github.com/ag2ai/ag2) (formerly AutoGen) to orchestrate specialized agents over financial documents, SEC filings, real-time stock data, and Reddit sentiment.
+The [AG2](https://github.com/ag2ai/ag2) (formerly AutoGen) shell around the shared FinanceAgents core: a FastAPI server, an interactive CLI, a deterministic router, and a standalone AG2 `GroupChat` demo in which an LLM coordinator decides which agents to consult.
 
-This is one of four parallel implementations in the FinanceAgents repository (alongside LlamaIndex, CrewAI, and LangChain).
+For the system overview, agent list, routing rules, environment setup, and the web UI see the [root README](../README.md). This file covers only what is specific to this directory.
 
-## Architecture
-
-### Core Components
-
-**Router** (`src/agents/ag2_router.py`)
-- `RouterAG2` analyzes the query, picks the relevant agents, and runs them concurrently with `asyncio.gather`.
-- Uses the same `shared_lib/query_classification.py` helpers as the other implementations, so routing decisions are consistent.
-
-**AG2-native flow** (`src/ag2_agent.py`)
-- Demonstrates AG2's idiomatic style: each shared agent is wrapped as a tool registered on a `ConversableAgent`, and a coordinator `ConversableAgent` + `GroupChatManager` decides which tools to call.
-- Useful as a reference; main.py uses the deterministic router for predictable latency.
-
-**Specialized agents** (from `shared_lib/agents/`)
-- `RAGAgent` — passage retrieval over internal PDFs (ChromaDB + HuggingFace embeddings), no LLM.
-- `FinanceAgent` — analyst LLM summary built on `RAGAgent.retrieve()`.
-- `YahooAgent` — 30-day stock statistics from Yahoo Finance.
-- `SECAgent` — SEC filing summaries.
-- `RedditAgent` — Reddit sentiment via PRAW.
-- `GeneralAgent` — Non-financial queries.
-
-**MCP protocol** (`shared_lib/schemas.py`)
-- `MCPRequest` / `MCPResponse` / `MCPContext` shared across all four implementations.
-
-## Quick Start
-
-### Prerequisites
-- Python 3.8+
-- `pip`
-- (Optional) Docker
-
-### Install
-
-```bash
-cd ag2_agents
-pip install -r requirements.txt
-```
-
-### Environment
-
-Create a `.env` file (or use the project-root `.env`):
-
-```env
-OPENAI_API_KEY=...
-REDDIT_CLIENT_ID=...
-REDDIT_CLIENT_SECRET=...
-```
-
-To use OpenRouter instead of OpenAI, set `LLM_PROVIDER=openrouter`, `OPENROUTER_API_KEY=...` and optionally `LLM_MODEL=<openrouter model id>`. See the root README for all LLM variables.
-
-### Run
-
-```bash
-# Local: starts FastAPI on :8000 and an interactive CLI
-env $(cat ../.env) python src/main.py
-
-# Or run the AG2-native group-chat demo directly
-python src/ag2_agent.py "Tell me about Tesla stock"
-```
-
-### Docker
-
-```bash
-docker build -t financeagents-ag2 .
-docker run -p 8000:8000 financeagents-ag2
-```
-
-## API
-
-`POST /query`
-
-```json
-{ "query": "What is Apple's revenue trend?" }
-```
-
-`GET /health`, `GET /agents` — service introspection.
-
-Swagger UI: `http://localhost:8000/docs`
-
-## Project Structure
+## What is here
 
 ```
 ag2_agents/
 ├── src/
-│   ├── main.py                # FastAPI server + CLI (port 8000)
+│   ├── main.py                # FastAPI app + CLI loop (port 8000); uses RouterAG2
 │   ├── ag2_agent.py           # AG2-native ConversableAgent + GroupChat demo
 │   └── agents/
-│       ├── ag2_router.py      # Deterministic router + APIRouter
-│       └── readme.txt
-├── tests/
-├── working_dir/               # gitignored
-├── requirements.txt
-├── dockerfile
-└── README.md
+│       └── ag2_router.py      # RouterAG2: classify -> dispatch shared agents concurrently
+├── tests/                     # empty
+├── working_dir/               # generated, gitignored: vector_db/chroma_index, logs
+├── requirements.txt           # ../requirements.txt + ag2>=0.9,<1.0
+└── dockerfile                 # not maintained, see root README
 ```
 
-## How AG2 fits in
+## Two orchestration paths
 
-The deterministic `RouterAG2` is identical in shape to `RouterCrew` / `RouterAgent` — same parallel `asyncio.gather` over the shared agents — to keep behavior comparable across frameworks.
+**`main.py` uses `RouterAG2`.** Same shape as the other three routers: `shared_lib/query_classification` picks the agents, they run under `asyncio.gather`, and the shared LLM passes produce the summaries. This is what serves `POST /query` and the CLI. Latency and cost are predictable.
 
-The framework-specific code lives in `ag2_agent.py`:
-- `ConversableAgent` instances per specialty, each with a tool that proxies to the corresponding shared agent.
-- A `coordinator` `ConversableAgent` plus a `UserProxyAgent` executor.
-- `GroupChat` + `GroupChatManager` for multi-turn LLM-driven orchestration.
+**`ag2_agent.py` is the AG2-native demo.** Each shared agent (`RAGAgent`, `FinanceAgent`, `YahooAgent`, `SECAgent`, `RedditAgent`, `GeneralAgent`) is registered as a tool on its own `ConversableAgent`; a `coordinator` `ConversableAgent` plus a `UserProxyAgent` executor sit in a `GroupChat` run by `GroupChatManager` with automatic speaker selection. The coordinator's LLM decides who speaks and which tools run, then ends with `TERMINATE`. Run it directly:
 
-This mirrors how `crewai_agents/src/crew_agent.py` demonstrates CrewAI patterns while `crewai_router.py` does the work in main.
+```bash
+env $(cat ../env.all) python src/ag2_agent.py "Tell me about Tesla stock"
+```
 
-## Ports
+Expect several LLM calls per round for up to 12 rounds; it costs far more tokens than the router.
 
-| Implementation | HTTP port |
-|----------------|-----------|
-| LangChain      | 8000      |
-| CrewAI         | 8000      |
-| LlamaIndex     | 8000      |
-| **AG2**        | **8000**  |
+## Run the server
 
-All four share port 8000 so the frontend needs no per-backend configuration; run one backend at a time.
+From this directory, with `env.all` filled in at the repository root:
 
-## Disclaimer
+```bash
+cd ag2_agents
+env $(cat ../env.all) python src/main.py
+```
 
-For educational/research use only. Not financial advice.
+You get the API on `http://localhost:8000` and a prompt in the same terminal (`Enter your question:`; `exit` or `quit` to stop).
+
+## API
+
+- `POST /query` `{"query": "..."}` returns `{"response": {AgentName: {"summary": markdown}}}` as documented in the root README.
+- `GET /health`, `GET /agents`.
+- Swagger UI at `/docs`.
+
+## AG2 version
+
+`requirements.txt` pins `ag2>=0.9,<1.0`. On that line the package installs as `ag2` and imports as `from autogen import ConversableAgent, GroupChat, ...`. AG2 1.0 is a different framework (`ag2.Agent`, no `ConversableAgent`, no `autogen` module) and will not run `ag2_agent.py`. If you built the shared conda env before the pin was added, downgrade with:
+
+```bash
+pip install "ag2>=0.9,<1.0"
+```
+
+## RAG storage
+
+`RAGAgent` persists its Chroma index at `working_dir/vector_db/chroma_index`, relative to this directory, and adds new `../raw_data/` files on startup.
