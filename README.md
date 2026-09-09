@@ -30,6 +30,42 @@ FinanceAgents/
 
 The four implementations are meant to behave identically. Agent logic, prompts, and routing live in `shared_lib/`, so a change there changes all four. Only orchestration differs per directory.
 
+## Design
+
+### System overview
+
+```mermaid
+flowchart TB
+    UI["frontend/  ·  Next.js chat UI  ·  :3000"] -->|"POST /query {query}"| M
+
+    subgraph BE["backend  ·  one of the four framework dirs  ·  :8000"]
+        M["src/main.py<br/>FastAPI + CLI"] --> R["router"]
+        R --> QC["shared_lib/query_classification<br/>companies · tickers · which agents"]
+    end
+
+    R --> RA & FA & YA & SA & GA
+
+    subgraph AG["shared_lib/agents  ·  selected agents run concurrently"]
+        RA["RedditAgent"]
+        FA["FinanceAgent"]
+        YA["YahooAgent"]
+        SA["SECAgent"]
+        GA["GeneralAgent"]
+    end
+
+    RA --> Reddit[("Reddit API")]
+    FA --> RG["RAGAgent<br/>retrieve()"] --> VDB[("vector index<br/>working_dir/vector_db")]
+    YA --> Yahoo[("Yahoo Finance")]
+    SA --> EDGAR[("SEC EDGAR")]
+
+    M -->|"agent results"| LH["shared_lib/llm_helpers<br/>improve each result · write final summary"]
+    LH --> LLM[("chat LLM<br/>OpenAI or OpenRouter<br/>shared_lib/llm_config")]
+```
+
+`FinanceAgent`, `YahooAgent`, `SECAgent`, and `GeneralAgent` also call the same chat LLM for their own summaries. The result travels back up the same path as `{"response": {AgentName: {"summary": ...}}}`; see the sequence diagram below.
+
+The four framework directories each provide the `main.py` + router box; everything below it is shared, so swapping the backend changes nothing the UI can see.
+
 ## How it works
 
 ### Agents
@@ -47,17 +83,51 @@ Every agent is a class with `run(MCPRequest) -> MCPResponse` (`shared_lib/schema
 
 ### Request flow (same in all four)
 
-```
-POST /query  or  CLI input
-   -> router.route()
-   -> shared_lib/query_classification picks agents   (deterministic, no LLM)
-   -> selected agents run concurrently (asyncio.gather)
-   -> shared_lib/llm_helpers.improve_agent_response() per agent
-   -> generate_comprehensive_summary() across all agents
-   -> {"response": {AgentName: {"summary": ...}, ..., "FinalSummary": {"summary": ...}}}
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (UI or CLI)
+    participant M as main.py
+    participant R as Router
+    participant Q as query_classification
+    participant A as Agents (concurrent)
+    participant L as LLM
+
+    C->>M: POST /query {"query"}
+    M->>R: route(MCPRequest)
+    R->>Q: extract companies and tickers, determine_agents()
+    Q-->>R: e.g. [Reddit, Finance, Yahoo, SEC]
+    par asyncio.gather
+        R->>A: RedditAgent.run()
+        R->>A: FinanceAgent.run() - RAGAgent.retrieve(), then LLM
+        R->>A: YahooAgent.run() - yfinance, then LLM
+        R->>A: SECAgent.run() - EDGAR, then LLM
+    end
+    A-->>R: MCPResponse per agent
+    R-->>M: {agent: data}
+    loop each agent result
+        M->>L: improve_agent_response()
+        L-->>M: cleaned markdown summary
+    end
+    M->>L: generate_comprehensive_summary()
+    L-->>M: FinalSummary
+    M-->>C: {"response": {Agent: {"summary"}, ..., "FinalSummary": {"summary"}}}
 ```
 
+Both LLM passes use whatever `LLM_PROVIDER` / `LLM_MODEL` select; with no key configured they fall back to the raw agent output.
+
 Routing rules (`determine_agents`):
+
+```mermaid
+flowchart TD
+    Q["query"] --> E["extract companies + tickers<br/>(config/companies.json, raw_data/ file names)"]
+    E --> S["strip company names from the query"]
+    S --> F{"remainder contains a<br/>financial keyword,<br/>or query was only a company name?"}
+    F -- no --> G["GeneralAgent"]
+    F -- yes --> T{"ticker found?"}
+    T -- yes --> ALL["RedditAgent · FinanceAgent<br/>YahooAgent · SECAgent"]
+    T -- no --> TWO["RedditAgent · FinanceAgent"]
+```
 
 | Query | Agents |
 |-------|--------|
@@ -204,6 +274,23 @@ Provider resolution lives in `shared_lib/llm_config.py` and applies to every imp
 ### Documents for RAG
 
 Drop PDF or SEC `.htm` filings into the shared `raw_data/` directory at the repository root. The company is taken from the file name up to the first `-`, and the year from the first `20xx` in the name, so `Apple-10-Q4-2024-As-Filed.pdf` indexes as company `apple`, year `2024`. A query about a company retrieves only from files whose name contains that company.
+
+```mermaid
+flowchart LR
+    RD["raw_data/<br/>*.pdf · *.htm"] --> LD["load<br/>PyPDF / BSHTML"]
+    LD --> META["metadata from file name<br/>company · year · file_name"]
+    META --> CH["chunk<br/>1000 chars, 100 overlap"]
+    CH --> EMB["embed<br/>all-MiniLM-L6-v2"]
+    EMB --> IDX[("vector index<br/>Chroma, or LlamaIndex storage")]
+
+    UQ["query:<br/>'&lt;company&gt; &lt;question&gt;'"] --> QE["embed"]
+    QE --> SIM
+    IDX --> SIM["similarity search<br/>only that company's files<br/>top 3"]
+    SIM --> P["passages<br/>file · page · year · distance"]
+    P --> FIN["FinanceAgent<br/>regex metrics + LLM summary"]
+```
+
+The long chain from `raw_data/` to the vector index runs at startup, and only for files not already in the index. The query branch is `RAGAgent.retrieve(query, company, k=3)`, which `FinanceAgent` calls once per company.
 
 Each implementation keeps its own index under its `working_dir/vector_db/`. On startup, files present in `raw_data/` but missing from the index are chunked and added, so adding a filing needs no rebuild. To rebuild from scratch, delete that directory.
 
