@@ -1,0 +1,11 @@
+/* Light 模式 */
+:root {
+  --color-primary: #2563eb;
+  --color-background: #ffffff;
+}
+
+/* Dark 模式 */
+.dark {
+  --color-primary: #1e293b;
+  --color-background: #0f172a;
+} 
