@@ -1,264 +1,53 @@
-# FinanceAgents Backend
+# FinanceAgents - CrewAI Implementation
 
-A FastAPI-based financial analysis system that uses specialized AI agents to provide comprehensive insights from multiple data sources including financial documents, SEC filings, real-time stock data, and social media sentiment.
+The CrewAI-flavoured shell around the shared FinanceAgents core: a FastAPI server, an interactive CLI, a deterministic router, and a reference `Crew` definition that wraps each shared agent as a CrewAI tool.
 
-## Features
+For the system overview, agent list, routing rules, environment setup, and the web UI see the [root README](../README.md). This file covers only what is specific to this directory.
 
-- **Multi-Agent Architecture**: Intelligent routing to specialized agents based on query content
-- **Real-Time Stock Data**: Integration with Yahoo Finance for live market data
-- **Document Analysis**: RAG-based analysis of financial documents using ChromaDB and HuggingFace embeddings
-- **SEC Filings Processing**: Automated analysis of SEC financial reports
-- **Sentiment Analysis**: Reddit sentiment analysis for mentioned companies
-- **Concurrent Processing**: Async agent execution for fast response times
-- **Dual Interface**: Both REST API and CLI interface
-- **MCP Protocol**: Standardized communication protocol across all agents
-
-## Architecture
-
-### Core Components
-
-**Router System** (`src/agents/crewai_router.py`)
-- Analyzes queries to determine relevant agents
-- Extracts company names and stock tickers
-- Orchestrates concurrent agent execution
-- Aggregates responses into comprehensive insights
-
-**Specialized Agents**
-- **GeneralAgent**: Handles non-financial queries
-- **FinanceAgent**: Analyzes internal documents using RAG
-- **YahooAgent**: Fetches real-time stock market data
-- **SECAgent**: Processes SEC financial filings
-- **RedditAgent**: Performs sentiment analysis on social media
-- **MonitorAgent**: Tracks system health and logging
-
-**MCP Protocol** (`shared_lib/schemas.py`)
-- Standardized request/response format
-- Context sharing between agents
-- Consistent error handling
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.8+
-- pip
-- Docker (optional)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd crewai_agents
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Create a `.env` file with your API keys:
-```env
-OPENAI_API_KEY=your_openai_api_key_here
-REDDIT_CLIENT_ID=your_reddit_client_id_here
-REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
-```
-
-4. (Optional) Add financial documents:
-```bash
-# Place PDF files in the raw_data/ directory
-cp your-financial-documents.pdf raw_data/
-```
-
-### Running the Application
-
-**Local Development:**
-```bash
-env $(cat ../.env) python src/main.py
-```
-
-This starts:
-- FastAPI server on `http://localhost:8000`
-- Interactive CLI interface
-
-**Using Docker:**
-```bash
-# Build the image
-docker build -t financeagents-backend .
-
-# Run the container
-docker run -p 8000:8000 financeagents-backend
-```
-
-## Usage
-
-### REST API
-
-**Endpoint:** `POST /query`
-
-**Request:**
-```json
-{
-  "query": "What is Apple's latest financial performance?"
-}
-```
-
-**Response:**
-```json
-{
-  "response": "Comprehensive financial analysis...",
-  "agents_used": ["YahooAgent", "SECAgent", "FinanceAgent"],
-  "companies": ["Apple"],
-  "tickers": ["AAPL"]
-}
-```
-
-### CLI Interface
-
-When running `python src/main.py`, you can interact directly in the terminal:
-```
-Enter your query (or 'exit' to quit): What is the current stock price of Tesla?
-```
-
-### Example Queries
-
-- "What is Apple's revenue trend?"
-- "Compare Microsoft and Google stock performance"
-- "What is the sentiment around TSLA on Reddit?"
-- "Analyze Amazon's latest SEC filing"
-- "What are the key financial metrics for NVDA?"
-
-## Project Structure
+## What is here
 
 ```
 crewai_agents/
-├── src/                       # Source code
-│   ├── main.py               # FastAPI application entry point
-│   ├── crew_agent.py         # CrewAI agent orchestration
-│   └── agents/               # Agent routing logic
-│       ├── crewai_router.py  # Router and orchestration
-│       └── router.py         # Router utilities
-├── tests/                     # Test files
-│   ├── test_agents.py        # Agent tests
-│   └── sample_outputs/       # Example agent responses
-├── working_dir/               # Generated data (gitignored)
-│   ├── vector_db/            # ChromaDB vector database
-│   └── logs/                 # Application logs
-├── dockerfile                 # Docker configuration
-├── requirements.txt           # Python dependencies
-└── CLAUDE.md                 # Development guidelines
-
+├── src/
+│   ├── main.py                # FastAPI app + CLI loop (port 8000); uses RouterCrew
+│   ├── crew_agent.py          # CrewAI Agents/Tasks/Crew over the shared agents (reference)
+│   └── agents/
+│       ├── crewai_router.py   # RouterCrew: classify -> dispatch shared agents concurrently
+│       └── router.py          # older router, superseded by crewai_router.py, not imported
+├── tests/
+│   ├── test_agents.py         # import smoke script
+│   └── sample_outputs/
+├── working_dir/               # generated, gitignored: vector_db/chroma_index, logs
+├── requirements.txt           # ../requirements.txt + crewai, langchain, langchain-core
+└── dockerfile                 # not maintained, see root README
 ```
 
-## Configuration
+## Two orchestration paths
 
-### Environment Variables
+**`main.py` uses `RouterCrew`** (`src/agents/crewai_router.py`). It is the same shape as the LangChain, LlamaIndex, and AG2 routers: pick agents with `shared_lib/query_classification`, run them with `asyncio.gather`, hand the results to the shared LLM post-processing. This is the path behind `POST /query` and the CLI.
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key for response improvement | Yes, unless using OpenRouter |
-| `LLM_PROVIDER` | `openai` (default) or `openrouter` | No |
-| `OPENROUTER_API_KEY` | OpenRouter key when `LLM_PROVIDER=openrouter` | No |
-| `LLM_MODEL` | Model id override (e.g. `deepseek/deepseek-chat` on OpenRouter) | No |
-| `REDDIT_CLIENT_ID` | Reddit API client ID | Yes |
-| `REDDIT_CLIENT_SECRET` | Reddit API client secret | Yes |
+**`crew_agent.py` is the CrewAI-native reference.** Each shared agent (`RAGAgent`, `FinanceAgent`, `YahooAgent`, `SECAgent`, `RedditAgent`, `GeneralAgent`) is exposed as a `@tool`, and a CrewAI `Agent` with a role and backstory owns each tool. `build_crew()` assembles them and `run_crew()` kicks off one task per agent. It is not wired into `main.py`.
 
-### Company/Ticker Mapping
+## Run
 
-The system automatically extracts company names and tickers from:
-- Mappings defined in `config/companies.json` at the project root
-- PDF filenames in the `raw_data/` directory
-- Natural language processing of the query
-
-## Development
-
-### Running Tests
+From this directory, with `env.all` filled in at the repository root:
 
 ```bash
-pytest
+cd crewai_agents
+env $(cat ../env.all) python src/main.py
 ```
 
-### Adding New Agents
+You get the API on `http://localhost:8000` and a prompt in the same terminal (`Enter your question:`; `exit` or `quit` to stop).
 
-1. Create a new agent file in `src/agents/`
-2. Implement the MCP protocol interface using `shared_lib/schemas.py`
-3. Add agent to router logic in `src/agents/crewai_router.py`
-4. Update agent selection criteria
+## API
 
-### Document Processing
+`POST /query` with `{"query": "..."}` returns `{"response": {AgentName: {"summary": markdown}}}` as documented in the root README. Swagger UI is at `/docs`. This implementation has no `/health` or `/agents` endpoint.
 
-The FinanceAgent uses:
-- **Embeddings**: HuggingFace "all-MiniLM-L6-v2" model
-- **Vector DB**: ChromaDB for semantic search
-- **Documents**: PDFs from `raw_data/` directory
+## RAG storage
 
-The vector database is automatically built on first run.
+`RAGAgent` persists its Chroma index at `working_dir/vector_db/chroma_index`, relative to this directory, and adds new `../raw_data/` files on startup.
 
-## API Documentation
+## Notes
 
-Once the server is running, visit:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Monitoring and Logging
-
-- All agent activities are logged to `working_dir/logs/monitor_logs.json`
-- MonitorAgent tracks system health and performance
-- Comprehensive error handling with graceful fallbacks
-
-## Technologies Used
-
-- **FastAPI**: Modern web framework for building APIs
-- **CrewAI**: Multi-agent orchestration framework
-- **LangChain**: LLM application framework
-- **ChromaDB**: Vector database for embeddings
-- **HuggingFace**: Embedding models and transformers
-- **OpenAI GPT**: Response improvement and generation
-- **PRAW**: Reddit API wrapper
-- **yfinance**: Yahoo Finance API wrapper
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Troubleshooting
-
-### Common Issues
-
-**Vector database not found:**
-- Ensure PDFs are in `raw_data/` directory
-- The database will be built automatically on first run
-
-**API key errors:**
-- Verify `.env` file exists and contains valid API keys
-- Check that environment variables are loaded correctly
-
-**Agent timeout:**
-- Some queries may take longer for comprehensive analysis
-- Consider increasing timeout values for complex queries
-
-**CORS errors:**
-- CORS is enabled by default for all origins
-- Adjust CORS settings in `src/main.py` if needed
-
-## Support
-
-For issues and questions:
-- Open an issue on GitHub
-- Check existing issues for similar problems
-- Review the `CLAUDE.md` file for development guidelines
-
-## Acknowledgments
-
-- OpenAI for GPT models
-- CrewAI framework
-- LangChain community
-- HuggingFace for embeddings
+- `run_crew()` in `crew_agent.py` reads `task.agent.name`, which recent CrewAI `Agent` versions do not expose. The router path used by `main.py` is unaffected.
+- `redis` is listed in `requirements.txt` but nothing imports it.

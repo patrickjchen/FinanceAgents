@@ -1,265 +1,243 @@
 # FinanceAgents
 
-An AI-powered financial analysis system that provides comprehensive investment insights by combining data from multiple sources. This project demonstrates the same financial analysis system implemented using four different agent frameworks: **LlamaIndex**, **CrewAI**, **LangChain**, and **AG2** (formerly AutoGen).
+A multi-agent financial analysis system implemented **four times over one shared core**, once per agent framework: **LangChain**, **CrewAI**, **LlamaIndex**, and **AG2** (formerly AutoGen). A Next.js web UI sits in front of whichever backend is running.
 
-## 🎯 What Does FinanceAgents Do?
+Ask a question such as `Tell me about Tesla stock` and the system:
 
-FinanceAgents is a multi-agent system that answers financial queries by orchestrating specialized AI agents. When you ask a financial question, the system automatically:
+1. Extracts company names and tickers from the query and decides which agents apply.
+2. Runs the selected agents concurrently: Reddit sentiment, internal filings (RAG), Yahoo Finance statistics, SEC EDGAR metrics.
+3. Cleans up each agent's output with an LLM, then writes one comprehensive summary.
 
-1. **Analyzes your query** to extract company names and stock tickers
-2. **Selects relevant agents** based on your question type
-3. **Runs agents in parallel** for fast, comprehensive analysis
-4. **Synthesizes results** into a cohesive investment report
-
-All in seconds, giving you:
-- 📊 **Real-time stock data** from Yahoo Finance
-- 📄 **SEC filing analysis** from regulatory documents
-- 💬 **Social sentiment** from Reddit discussions
-- 📚 **Internal document analysis** using RAG (Retrieval-Augmented Generation)
-- 🎯 **Comprehensive summary** synthesizing all insights
-
-## 📦 Project Structure
-
-This repository contains four separate implementations of the same financial analysis system:
+## Repository layout
 
 ```
 FinanceAgents/
-├── llamaindex_agents/     # LlamaIndex Workflow implementation
-├── crewai_agents/         # CrewAI implementation
-├── langchain_agents/      # LangChain implementation
-├── ag2_agents/            # AG2 (formerly AutoGen) implementation
-├── frontend/              # Next.js web UI (chat over any backend's POST /query)
-├── shared_lib/            # Shared agents, schemas, and utilities
-├── config/                # Configuration data files
-├── raw_data/              # Financial PDF documents
-└── README.md              # This file
+├── shared_lib/            # The actual logic: agents, MCP schemas, routing rules, LLM + embedding config
+│   ├── agents/            # RAGAgent, FinanceAgent, YahooAgent, SECAgent, RedditAgent, GeneralAgent
+│   ├── query_classification.py   # deterministic company/ticker extraction + agent selection
+│   ├── llm_config.py      # OpenAI / OpenRouter provider selection
+│   └── embeddings.py      # cached HuggingFace embedding model
+├── config/companies.json  # company -> ticker map and financial keywords (drives routing)
+├── raw_data/              # 10-K / 10-Q filings (PDF or SEC .htm) indexed by RAGAgent
+├── langchain_agents/      # thin framework shells: src/main.py (FastAPI + CLI) + a router
+├── crewai_agents/
+├── llamaindex_agents/     # also carries LlamaIndex-native RAG / Yahoo / Reddit agents
+├── ag2_agents/            # also carries an AG2 GroupChat demo
+├── frontend/              # Next.js chat UI
+├── requirements.txt       # shared Python deps (each implementation adds its framework on top)
+└── env_file               # template for env.all (API keys, LLM provider)
 ```
 
-### Implementation Comparison
+The four implementations are meant to behave identically. Agent logic, prompts, and routing live in `shared_lib/`, so a change there changes all four. Only orchestration differs per directory.
 
-| Framework | Architecture | Orchestration | Key Features |
-|-----------|--------------|---------------|--------------|
-| **LlamaIndex** | Event-driven workflow | Declarative workflow steps | Robust parallel execution, built-in timeout handling |
-| **CrewAI** | Router-based | Concurrent async execution | Agent crew coordination, MCP protocol |
-| **LangChain** | Router-based | Semantic similarity routing | Query classification via sentence transformers |
-| **AG2** | ConversableAgent + GroupChat | Concurrent async execution (deterministic router) + LLM-driven group chat demo | Tool-registration pattern, coordinator/executor split |
+## How it works
 
-All four implementations share:
-- **Specialized Agents**: Finance, Yahoo, SEC, Reddit, General agents
-- **RAG Capabilities**: Vector database with HuggingFace embeddings
-- **Dual Interface**: REST API + Interactive CLI
-- **MCP Protocol**: Standardized agent communication
-- **Parallel Processing**: Fast concurrent agent execution
+### Agents
 
-## 🚀 Getting Started
+Every agent is a class with `run(MCPRequest) -> MCPResponse` (`shared_lib/schemas.py`). That uniform contract is what lets the four routers share dispatch code.
 
-### Choose Your Implementation
+| Agent | What it does | Source | LLM call |
+|-------|--------------|--------|----------|
+| **RAGAgent** | Retrieves the most relevant passages from the filings in `raw_data/` for a query, per company | Vector index (Chroma, or LlamaIndex storage in `llamaindex_agents`) over HuggingFace `all-MiniLM-L6-v2` embeddings | No |
+| **FinanceAgent** | Analyst summary of the internal filings, built on `RAGAgent.retrieve()` plus regex metric extraction | RAGAgent | Yes |
+| **YahooAgent** | 30-day price statistics (min/max/mean, change, volatility) with a short analysis | `yfinance` | Yes |
+| **SECAgent** | Latest revenue, net income, assets, liabilities, equity from XBRL company facts | SEC EDGAR API | Yes |
+| **RedditAgent** | Recent r/stocks posts and comments mentioning the company | Reddit via PRAW | No |
+| **GeneralAgent** | Answers non-financial questions | LLM only | Yes |
 
-Each implementation is self-contained in its own directory. Navigate to the implementation you want to use:
+### Request flow (same in all four)
 
-- **[llamaindex_agents/](./llamaindex_agents/README.md)** - Recommended for production use (most robust)
-- **[crewai_agents/](./crewai_agents/README.md)** - Great for crew-based agent coordination
-- **[langchain_agents/](./langchain_agents/)** - Best for semantic query routing
-- **[ag2_agents/](./ag2_agents/README.md)** - AG2 / AutoGen ConversableAgent + GroupChat patterns
+```
+POST /query  or  CLI input
+   -> router.route()
+   -> shared_lib/query_classification picks agents   (deterministic, no LLM)
+   -> selected agents run concurrently (asyncio.gather)
+   -> shared_lib/llm_helpers.improve_agent_response() per agent
+   -> generate_comprehensive_summary() across all agents
+   -> {"response": {AgentName: {"summary": ...}, ..., "FinalSummary": {"summary": ...}}}
+```
 
-Each directory contains its own README with detailed setup instructions.
+Routing rules (`determine_agents`):
 
-### Prerequisites
+| Query | Agents |
+|-------|--------|
+| Financial, with a known ticker (`AAPL`, `Tell me about Tesla stock`) | Reddit, Finance, Yahoo, SEC |
+| Financial, no known ticker (`What is a good dividend stock?`) | Reddit, Finance |
+| Not financial (`apple pie recipe`) | General |
 
-All implementations require:
-- Python 3.8+
-- OpenAI API key (or an OpenRouter key, see below)
-- Reddit API credentials (optional, for sentiment analysis)
+"Financial" is judged on the query *after* company names are stripped, against the keyword list in `config/companies.json`. A bare company name counts as financial.
 
-### Quick Start (LlamaIndex Example)
+### Where the implementations differ
+
+| Directory | Orchestration in `main.py` | Framework-specific extras |
+|-----------|----------------------------|---------------------------|
+| `langchain_agents` | Deterministic router over the shared agents | Shared agents use LangChain loaders, Chroma, HuggingFace embeddings |
+| `crewai_agents` | Deterministic router (`crewai_router.py`) | `crew_agent.py` wraps each agent as a CrewAI tool; a reference, not used by `main.py` |
+| `llamaindex_agents` | Deterministic router | Its own `rag_agent.py` (`VectorStoreIndex`), `finance_agent.py`, `yahoo_agent_enhanced.py` (CSV export), `reddit_agent.py` (`asyncpraw`) |
+| `ag2_agents` | Deterministic router | `ag2_agent.py`: AG2 `ConversableAgent` + `GroupChat` demo where an LLM coordinator picks tools; run standalone, costs far more tokens |
+
+All four listen on **port 8000**, expose the same `POST /query`, and start an interactive CLI in the same process. Run one backend at a time.
+
+## Quick start
+
+### 1. Python environment
+
+One conda env serves all four implementations. Nothing is pinned to conflicting versions, so install the four requirement files in a single `pip` call:
 
 ```bash
-# Navigate to implementation directory
-cd llamaindex_agents
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-env $(cat ../.env) python src/main.py
+conda create -y -n financeagents python=3.11
+conda activate financeagents
+cd FinanceAgents
+pip install -r langchain_agents/requirements.txt \
+            -r crewai_agents/requirements.txt \
+            -r llamaindex_agents/requirements.txt \
+            -r ag2_agents/requirements.txt
 ```
 
-See each implementation's README for specific setup instructions.
+The first install is slow: it pulls `torch` and the embedding model's toolchain. Python 3.11 is recommended; 3.13 lacks wheels for some of the ML dependencies.
 
-### Web UI (optional)
+### 2. Keys
 
-`frontend/` is a Next.js chat UI that posts to any running backend's `POST /query` and renders each agent's summary. With a backend running (LangChain on port 8000 by default):
+Copy the template and fill it in. `env.all` is gitignored.
 
 ```bash
-cd frontend
-npm ci
-npm run dev          # http://localhost:3000
+cp env_file env.all
 ```
 
-All four backends listen on port 8000, so the UI works with whichever one is running. Set `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`) only if the backend lives elsewhere. Details in `frontend/README.md`.
-
-## 🏗️ Common Architecture
-
-### Specialized Agents
-
-All implementations use these specialized agents:
-
-| Agent | Purpose | Data Source |
-|-------|---------|-------------|
-| **RAGAgent** | Retrieve relevant passages from internal filings | PDF/HTML filings via Vector DB (no LLM) |
-| **FinanceAgent** | Analyze internal financial documents | Passages from RAGAgent + LLM summary |
-| **YahooAgent** | Real-time stock data and metrics | Yahoo Finance API |
-| **SECAgent** | Regulatory filings and compliance | SEC EDGAR API |
-| **RedditAgent** | Market sentiment analysis | Reddit API (r/stocks, r/investing) |
-| **GeneralAgent** | General context and information | GPT-powered responses |
-
-### Data Flow
-
-```
-User Query
-    ↓
-Query Analysis (Extract companies/tickers)
-    ↓
-Agent Selection (Determine relevant agents)
-    ↓
-Parallel Agent Execution (Finance, Yahoo, SEC, Reddit, General)
-    ↓
-Response Enhancement (LLM improves each output)
-    ↓
-Summary Generation (Synthesize comprehensive report)
-    ↓
-Final Response
-```
-
-## 💡 Example Queries
-
-Try these queries with any implementation:
-
-**Stock Analysis:**
-```
-Tell me about Tesla stock
-```
-
-**Company Comparison:**
-```
-Compare Apple and Microsoft stocks
-```
-
-**Market Sentiment:**
-```
-What is the sentiment around NVIDIA on social media?
-```
-
-**Document Analysis:**
-```
-What are the key metrics in Apple's financial reports?
-```
-
-**Multi-company Analysis:**
-```
-Analyze the tech sector: Apple, Microsoft, Google, and Amazon
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env` file in the implementation directory you're using:
+Minimum: one LLM key. Either
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
-REDDIT_CLIENT_ID=your_reddit_client_id_here
-REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
 ```
 
-#### Using OpenRouter instead of OpenAI
-
-All LLM calls go through the OpenAI-compatible chat API, so you can point the whole system at [OpenRouter](https://openrouter.ai) (one key, many models) with environment variables only:
+or, to use any model through [OpenRouter](https://openrouter.ai):
 
 ```env
 LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=sk-or-v1-...
-LLM_MODEL=deepseek/deepseek-chat        # any OpenRouter model id; default openai/gpt-3.5-turbo
+LLM_MODEL=deepseek/deepseek-chat      # optional; any OpenRouter model id
 ```
 
-| Variable | Description |
-|----------|-------------|
-| `LLM_PROVIDER` | `openai` (default) or `openrouter`. Auto-selects `openrouter` when only `OPENROUTER_API_KEY` is set. |
-| `LLM_MODEL` | Model id for the chosen provider. OpenRouter ids carry a vendor prefix, e.g. `anthropic/claude-sonnet-4`. |
-| `OPENROUTER_API_KEY` | OpenRouter key (used when provider is `openrouter`). |
-| `OPENROUTER_BASE_URL` | Defaults to `https://openrouter.ai/api/v1`. |
-| `OPENROUTER_SITE_URL` / `OPENROUTER_APP_NAME` | Optional `HTTP-Referer` / `X-Title` headers for OpenRouter's dashboard. |
+Optional: `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` for the Reddit agent (it fails gracefully without them), and `HF_TOKEN` to avoid anonymous rate limits when the embedding model is first downloaded.
 
-Provider resolution lives in `shared_lib/llm_config.py` and applies to every implementation.
+### 3. Run a backend
 
-### Adding Financial Documents
+Always run from the implementation's own directory. The vector index and logs are written relative to the working directory.
 
-To enable document analysis:
+```bash
+cd langchain_agents            # or crewai_agents / llamaindex_agents / ag2_agents
+env $(cat ../env.all) python src/main.py
+```
 
-1. Create a `raw_data/` directory in your chosen implementation folder
-2. Add PDF financial documents with format: `company-year.pdf` (e.g., `apple-2023.pdf`)
-3. The system will automatically build a vector index on first run
+This starts the FastAPI server on `http://localhost:8000` and an interactive CLI in the same terminal:
 
-### Supported Companies
+```
+Enter your question: AAPL
+```
 
-Built-in mappings for major companies:
-- Apple (AAPL), Microsoft (MSFT), Google/Alphabet (GOOG)
-- Amazon (AMZN), Meta/Facebook (META), Tesla (TSLA)
-- NVIDIA (NVDA), Netflix (NFLX), Intel (INTC), IBM (IBM)
+The first run builds the vector index from `raw_data/`, which takes roughly a minute for the Chroma implementations and a few minutes for LlamaIndex. Later runs load it and only index files that are new.
 
-Add new companies by:
-1. Adding PDF documents to `raw_data/`
-2. Updating `config/companies.json` with the company name and ticker
+Query the API from another terminal:
 
-## 📚 Technologies Used
+```bash
+curl -X POST http://localhost:8000/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Tell me about Tesla stock"}'
+```
 
-### Common Technologies
-- **OpenAI GPT-3.5/4** (or any model via **OpenRouter**): Language models for analysis and synthesis
-- **HuggingFace**: Embedding models for semantic search
-- **ChromaDB**: Vector database for document storage
-- **FastAPI**: REST API framework
-- **yfinance**: Yahoo Finance data access
-- **PRAW**: Reddit API client
+### 4. Run the web UI
 
-### Framework-Specific
-- **LlamaIndex**: Workflow orchestration and RAG
-- **CrewAI**: Multi-agent crew coordination
-- **LangChain**: Agent chaining and semantic routing
-- **AG2**: ConversableAgent + GroupChatManager with tool registration
+Requires Node 18 or newer. With a backend running on port 8000:
 
-## 🎓 Learning Resources
+```bash
+cd frontend
+npm ci              # first time only
+npm run dev         # http://localhost:3000
+```
 
-This project is ideal for:
-- Learning different agent frameworks and their trade-offs
-- Understanding RAG (Retrieval-Augmented Generation) systems
-- Building multi-agent financial analysis systems
-- Comparing workflow vs router architectures
-- Exploring parallel agent execution patterns
+The chat page posts to the backend and renders the final summary on top with each agent's section as a collapsible card. See [frontend/README.md](./frontend/README.md).
 
-## 📖 Documentation
+## API
 
-- [LlamaIndex Implementation](./llamaindex_agents/README.md) - Event-driven workflow architecture
-- [CrewAI Implementation](./crewai_agents/README.md) - Crew-based agent coordination
-- LangChain Implementation - Semantic routing (see `langchain_agents/CLAUDE.md`)
-- [AG2 Implementation](./ag2_agents/README.md) - ConversableAgent + GroupChat patterns
+| Endpoint | Available in | Purpose |
+|----------|--------------|---------|
+| `POST /query` `{"query": "..."}` | all four | Run the pipeline |
+| `GET /health` | llamaindex, ag2 | Liveness and version |
+| `GET /agents` | llamaindex, ag2 | List agents |
+| `GET /docs` | all four | Swagger UI |
 
-## 🤝 Contributing
+`POST /query` response:
 
-Each implementation is independently maintained. To contribute:
+```json
+{
+  "response": {
+    "RedditAgent":  {"summary": "..."},
+    "FinanceAgent": {"summary": "..."},
+    "YahooAgent":   {"summary": "..."},
+    "SecAgent":     {"summary": "..."},
+    "FinalSummary": {"summary": "..."}
+  }
+}
+```
 
-1. Choose the implementation you want to enhance
-2. Follow that implementation's development guidelines
-3. Test your changes thoroughly
-4. Submit a pull request with clear description
+Summaries are markdown. For a non-financial query the response holds only `GeneralAgent`. Agents that fail or return nothing are omitted.
 
-## 📄 License
+## Configuration
 
-This project demonstrates AI agent frameworks for educational purposes. Ensure compliance with API terms of service (OpenAI, Yahoo Finance, Reddit, SEC) when deploying.
+### Environment variables
 
-## ⚠️ Disclaimer
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LLM_PROVIDER` | `openai` | `openai` or `openrouter`. Auto-selects `openrouter` when only `OPENROUTER_API_KEY` is set. |
+| `OPENAI_API_KEY` | | Key for the `openai` provider |
+| `OPENROUTER_API_KEY` | | Key for the `openrouter` provider |
+| `LLM_MODEL` | `gpt-3.5-turbo` / `deepseek/deepseek-chat` | Chat model for every LLM call, per provider |
+| `OPENAI_BASE_URL`, `OPENROUTER_BASE_URL` | | Override endpoints |
+| `OPENROUTER_SITE_URL`, `OPENROUTER_APP_NAME` | | Optional attribution headers for OpenRouter's dashboard |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | HuggingFace embedding model for RAG. Changing it requires deleting the existing index. |
+| `HF_TOKEN` | | Optional HuggingFace token for the model download |
+| `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | | Reddit API credentials |
 
-This system is for educational and research purposes only. It is not financial advice. Always consult with qualified financial professionals before making investment decisions.
+Provider resolution lives in `shared_lib/llm_config.py` and applies to every implementation. Without any LLM key the system still runs and returns the agents' raw output.
 
----
+### Documents for RAG
 
-**Choose your framework and start analyzing!** 🚀
+Drop PDF or SEC `.htm` filings into the shared `raw_data/` directory at the repository root. The company is taken from the file name up to the first `-`, and the year from the first `20xx` in the name, so `Apple-10-Q4-2024-As-Filed.pdf` indexes as company `apple`, year `2024`. A query about a company retrieves only from files whose name contains that company.
+
+Each implementation keeps its own index under its `working_dir/vector_db/`. On startup, files present in `raw_data/` but missing from the index are chunked and added, so adding a filing needs no rebuild. To rebuild from scratch, delete that directory.
+
+### Companies and routing keywords
+
+`config/companies.json` holds the company-to-ticker map and the financial keyword list. Add a company there, and drop its filing in `raw_data/`; nothing in the routers needs to change.
+
+## Testing
+
+There is no unified test suite. `llamaindex_agents/tests/` and `crewai_agents/tests/test_agents.py` hold standalone smoke scripts, run directly from the implementation directory:
+
+```bash
+cd llamaindex_agents
+env $(cat ../env.all) python tests/test_implementation.py
+```
+
+The `langchain_agents/tests/sample_outputs/` directory holds recorded responses for reference.
+
+## Known limitations
+
+- **Reddit sentiment scores are random.** The agent fetches real posts and comments, but the numeric sentiment is a placeholder.
+- **One backend at a time.** All four share port 8000.
+- **Backend Dockerfiles are not maintained.** They build from a single implementation directory, so they cannot see `shared_lib/` or the shared `requirements.txt`. Run locally as described above.
+- **AG2 must be the 0.x line.** `ag2_agents/requirements.txt` pins `ag2<1.0`; AG2 1.0 replaced the `ConversableAgent` API the demo uses.
+- **`redis` and `secedgar`** appear in two requirement files but are not used.
+
+## Further documentation
+
+- [langchain_agents/README.md](./langchain_agents/README.md)
+- [crewai_agents/README.md](./crewai_agents/README.md)
+- [llamaindex_agents/README.md](./llamaindex_agents/README.md)
+- [ag2_agents/README.md](./ag2_agents/README.md)
+- [frontend/README.md](./frontend/README.md)
+
+## Disclaimer
+
+This project exists to compare agent frameworks. It is not financial advice. Observe the terms of service of OpenAI, OpenRouter, Yahoo Finance, Reddit, and SEC EDGAR when deploying.

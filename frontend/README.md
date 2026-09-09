@@ -1,102 +1,117 @@
-# FinanceAgents Frontend (BankerAI UI)
+# FinanceAgents Frontend
 
-A Next.js web UI for the FinanceAgents backend: a chat page that sends questions to `POST /query` and renders each agent's summary, plus demo analysis and settings pages.
+A Next.js chat UI for the FinanceAgents backends. Type a question, the page posts it to `POST /query`, and the reply is rendered as markdown: the comprehensive summary on top, then one collapsible card per agent (Reddit sentiment, internal filings, market data, SEC filings).
 
-## Connecting to the backend
+The Analysis and Settings tabs are UI demos with static data; only the Chat tab talks to the backend.
 
-The chat page posts to `NEXT_PUBLIC_API_URL` (default `http://localhost:8000`). All four backends listen on 8000, so no configuration is needed unless you move the backend elsewhere. Start one backend from its own directory, e.g.
+## Run it
 
-```bash
-cd ../langchain_agents && env $(cat ../env.all) python src/main.py
-```
+Requires **Node 18 or newer** (`node --version`). `node_modules` and `.next` are gitignored, so a fresh clone has no `next` binary until you install.
 
-(or any of `crewai_agents`, `llamaindex_agents`, `ag2_agents`; one at a time, since they share the port). To point at a backend on another host or port, copy `.env.example` to `.env.local` and edit it.
+1. Start any one backend from its own directory. All four listen on port 8000.
 
-The backend replies with `{"response": {AgentName: {"summary": "..."}, "FinalSummary": {...}}}`, which the chat renders one block per agent.
+   ```bash
+   cd ../langchain_agents            # or crewai_agents / llamaindex_agents / ag2_agents
+   env $(cat ../env.all) python src/main.py
+   ```
 
-## Features
+2. Install and start the UI:
 
-### 🤖 Dashboard - Intelligent Chat
-- ChatGPT-like chat interface
-- Live answers from the FinanceAgents backend (per-agent summaries + final summary)
-- Message history
-- Keyboard shortcut support (Enter to send)
+   ```bash
+   cd frontend
+   npm ci              # first time, or after package.json changes
+   npm run dev
+   ```
 
-### 📊 Analysis - Data Analysis (static demo data)
-- **Stock Price Trend**: Display stock price changes
-- **Industry Revenue Analysis**: Bar chart showing revenue comparison across industries
-- **Portfolio Distribution**: Pie chart showing asset allocation
-- **Volume Analysis**: Display trading volume changes
-- **Key Metrics Cards**: Total assets, monthly return, risk level, positions
+3. Open <http://localhost:3000>, pick the Chat tab, and ask e.g. `Tell me about Tesla stock` or `NFLX`. A full answer takes 20 to 60 seconds; the three bouncing dots show while the backend works.
 
-### ⚙️ Settings - Personal Settings (UI only, not persisted)
-- **Profile Management**: Name, email, phone, language settings
-- **Notification Settings**: Email, push, SMS notification toggles
-- **Security Settings**: Change password, two-factor authentication, login history
-- **Appearance Settings**: Dark mode toggle
+`npm run dev` uses Turbopack with hot reload. For a production build:
 
-## Tech Stack
-
-- **Framework**: Next.js 15.1.8 with App Router
-- **UI Library**: React 19 + TypeScript
-- **Styles**: Tailwind CSS
-- **Charts**: Recharts
-- **Icons**: Lucide React
-- **Build Tool**: Turbopack
-
-## Getting Started
-
-### Install dependencies
-```bash
-npm install
-```
-
-### Start the development server
-```bash
-npm run dev
-```
-
-The app will start at http://localhost:3000
-
-### Build for production
 ```bash
 npm run build
+npm start           # serves the build on port 3000
 ```
 
-### Start the production server
+### Pointing at a different backend
+
+The backend URL is read from `NEXT_PUBLIC_API_URL` at startup and defaults to `http://localhost:8000`. To change it, copy `.env.example` to `.env.local`, edit the value, and restart `npm run dev`. `.env.local` is gitignored.
+
+```env
+NEXT_PUBLIC_API_URL=http://192.168.1.20:8000
+```
+
+### "Request failed, please try again later"
+
+The page shows this whenever the request to the backend fails. Check, in order:
+
+1. A backend is running: `curl -s http://localhost:8000/docs` should return HTML.
+2. `NEXT_PUBLIC_API_URL` matches where it runs, and the dev server was restarted after changing it.
+3. The browser's developer console for the actual error (connection refused, CORS, 500).
+
+## What the backend returns
+
+```json
+{
+  "response": {
+    "RedditAgent":  {"summary": "### ...markdown..."},
+    "FinanceAgent": {"summary": "..."},
+    "YahooAgent":   {"summary": "..."},
+    "SecAgent":     {"summary": "..."},
+    "FinalSummary": {"summary": "..."}
+  }
+}
+```
+
+`AgentResponse.tsx` maps each key to a label, icon, and colour. `FinalSummary` renders first and expanded; the others render collapsed. Unknown keys still render, labelled by their key. A non-financial question comes back with only `GeneralAgent`, which renders expanded.
+
+## Project structure
+
+```
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # tab switcher (Chat / Analysis / Settings)
+│   │   ├── layout.tsx            # loads Geist fonts, global CSS
+│   │   └── globals.css
+│   └── components/
+│       ├── Dashboard.tsx         # chat page: history list, input, axios call to /query
+│       ├── AgentResponse.tsx     # renders one backend reply as markdown cards
+│       ├── Sidebar.tsx
+│       ├── Analysis.tsx          # static demo charts (Recharts)
+│       ├── Settings.tsx          # static demo settings
+│       └── ...                   # unused helper components kept from the original UI
+├── .env.example                  # NEXT_PUBLIC_API_URL
+├── package.json
+├── tailwind.config.ts            # typography plugin, Geist font family
+├── next.config.ts
+└── Dockerfile                    # builds and serves on port 3000 (standalone; backend URL baked in at build)
+```
+
+## Stack
+
+| | |
+|---|---|
+| Framework | Next.js 15 (App Router, Turbopack) |
+| UI | React 19, TypeScript, Tailwind CSS 3 with `@tailwindcss/typography` |
+| Markdown | `react-markdown` + `remark-gfm` |
+| Charts | Recharts (Analysis tab) |
+| Icons | Lucide React |
+| HTTP | axios |
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | dev server with hot reload |
+| `npm run build` | production build (also type-checks and lints) |
+| `npm start` | serve the production build |
+| `npm run lint` | ESLint |
+
+## Docker
+
 ```bash
-npm start
+docker build -t financeagents-frontend .
+docker run -p 3000:3000 financeagents-frontend
 ```
 
-## Project Structure
-
-```
-src/
-├── app/
-│   ├── page.tsx          # Main page
-│   ├── layout.tsx        # Layout component
-│   └── globals.css       # Global styles
-├── components/
-│   ├── Sidebar.tsx       # Sidebar navigation
-│   ├── Dashboard.tsx     # Chat interface
-│   ├── Analysis.tsx      # Data analysis page
-│   ├── Settings.tsx      # Settings page
-│   └── ...              # Other components
-```
-
-## Usage
-
-1. **Dashboard page**: Enter your question in the input box, AI will reply automatically
-2. **Analysis page**: View various financial data charts and key metrics
-3. **Settings page**: Manage profile, notifications, and security settings
-
-## Development Notes
-
-- TypeScript for type safety
-- Responsive design, mobile-friendly
-- Component-based development for easy maintenance and extension
-- Modern UI design with Tailwind CSS
-
-## License
-
-MIT License
+The image is built with the default backend URL `http://localhost:8000`. `NEXT_PUBLIC_*` values are inlined at build time, so to target another backend add `ENV NEXT_PUBLIC_API_URL=...` to the `Dockerfile` before the `npm run build` step and rebuild.
