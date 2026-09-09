@@ -1,27 +1,29 @@
 from datetime import datetime
 from shared_lib.monitor import MonitorAgent
 import os
-
-from shared_lib.embeddings import get_langchain_embeddings
-
-try:
-    from langchain_chroma import Chroma
-except ImportError:
-    from langchain_community.vectorstores import Chroma
-
-from langchain_community.document_loaders import PyPDFLoader, BSHTMLLoader
 import traceback
 import json
 import random
 import re
 from shared_lib.schemas import MCPRequest, MCPResponse
+from shared_lib.agents.rag_agent import RAGAgent
 
 class FinanceAgent:
+    """Financial analysis over the internal filings.
+
+    Retrieval is delegated to RAGAgent; this agent adds metric extraction and
+    the analyst-style LLM summary on top of the retrieved passages.
+    """
+
     def __init__(self):
         self.monitor = MonitorAgent()
-        self.embeddings = get_langchain_embeddings()  # cached per process
-        self.vector_db_path = "working_dir/vector_db/chroma_index"
-        self.retriever = self._get_retriever()
+        try:
+            self.rag = RAGAgent()
+        except Exception as e:
+            self.monitor.log_health("FinanceAgent", "FAILED", str(e))
+            print(f"[FinanceAgent] Error during RAG setup: {e}")
+            print(traceback.format_exc())
+            raise
         self.prompts = [
             "As a professional investment banker, answer the following question with expertise and clarity:",
             "As a senior financial analyst, provide a detailed and insightful answer to the following question:",
@@ -34,49 +36,6 @@ class FinanceAgent:
             "Client: What is the outlook for this sector?\nBanker: Based on the latest reports and my expertise, here is the outlook... Now, answer the following question:",
             "Client: Should we proceed with this acquisition?\nBanker: Here is my professional advice based on the data... Now, answer the following question:"
         ]
-
-    def _get_retriever(self):
-        try:
-            start_time = datetime.now()
-            if os.path.exists(self.vector_db_path) and os.listdir(self.vector_db_path):
-                status = "ChromaDB index loaded successfully"
-                db = Chroma(persist_directory=self.vector_db_path, embedding_function=self.embeddings)
-                retriever = db.as_retriever()
-            else:
-                status = "ChromaDB index built from scratch"
-                print(f"[FinanceAgent] {status} at {start_time}. Building from raw_data...")
-                docs = []
-                raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
-                for fname in os.listdir(raw_data_dir):
-                    if fname.lower().endswith((".pdf", ".htm", ".html")):
-                        pdf_path = os.path.join(raw_data_dir, fname)
-                        base = os.path.splitext(fname)[0]
-                        year_match = re.search(r"(20\d{2})", base)
-                        year = year_match.group(1) if year_match else "Unknown"
-                        company = base.split("-")[0] if "-" in base else base
-                        if fname.lower().endswith(".pdf"):
-                            loader = PyPDFLoader(pdf_path)
-                        else:
-                            loader = BSHTMLLoader(pdf_path)
-                        loaded_docs = loader.load()
-                        for d in loaded_docs:
-                            d.metadata = d.metadata or {}
-                            d.metadata["file_name"] = fname
-                            d.metadata["year"] = year
-                            d.metadata["company"] = company.lower()
-                        docs.extend(loaded_docs)
-                if not docs:
-                    raise ValueError("No documents found in raw_data for RAG.")
-                print(f"[FinanceAgent] Loaded {len(docs)} documents. Creating ChromaDB index...")
-                db = Chroma.from_documents(docs, self.embeddings, persist_directory=self.vector_db_path)
-                retriever = db.as_retriever()
-            self.monitor.log_health("FinanceAgent", status)
-            return retriever
-        except Exception as e:
-            self.monitor.log_health("FinanceAgent", "FAILED", str(e))
-            print(f"[FinanceAgent] Error during RAG setup: {e}")
-            print(traceback.format_exc())
-            raise
 
     def extract_metrics(self, text):
         metrics = {}
@@ -108,35 +67,21 @@ class FinanceAgent:
         response_data = []
         status = "processing"
         print(f"[FinanceAgent] Companies: {companies}")
-        raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
         try:
             for company in companies:
                 print(f"[FinanceAgent] Processing company: {company}")
-                # 1. Check for files about the company
-                company_files = [fname for fname in os.listdir(raw_data_dir) if company.lower() in fname.lower() and fname.lower().endswith(('.pdf', '.htm', '.html'))]
-                if not company_files:
+                # 1. Retrieve relevant passages for the query from the company's files (via RAGAgent)
+                if not self.rag.company_files(company):
                     print(f"There is no internal files about the {company}.")
                     continue
-                # 2. Retrieve relevant content for the query from those files
-                docs = []
-                for fname in company_files:
-                    file_path = os.path.join(raw_data_dir, fname)
-                    if fname.lower().endswith(".pdf"):
-                        loader = PyPDFLoader(file_path)
-                    else:
-                        loader = BSHTMLLoader(file_path)
-                    loaded_docs = loader.load()
-                    docs.extend(loaded_docs)
-                # Use retriever to get relevant docs for the query
-                if not docs:
-                    print(f"No content loaded from files for {company}.")
+                passages = self.rag.retrieve(f"{company} {user_query}", company=company, k=3)
+                if not passages:
+                    print(f"No relevant content found for {company}.")
                     continue
-                db = Chroma.from_documents(docs, self.embeddings)
-                relevant_docs = db.similarity_search(f"{company} {user_query}", k=3)
-                # 3. Summarize relevant content with key data and descriptions via LLM
+                # 2. Summarize relevant content with key data and descriptions via LLM
                 summaries = []
-                for d in relevant_docs:
-                    snippet = d.page_content[:1000]
+                for p in passages:
+                    snippet = p["content"][:1000]
                     key_data = self.extract_metrics(snippet)
                     prompt = (
                         f"You are a financial analyst. Here is some internal document content for {company} relevant to the query: '{user_query}'.\n"
@@ -149,7 +94,7 @@ class FinanceAgent:
                     except Exception as e:
                         summary = f"LLM error: {e}"
                     summaries.append({
-                        "file_name": d.metadata.get('file_name', 'Unknown'),
+                        "file_name": p.get("file_name", "Unknown"),
                         "summary": summary,
                         "key_data": key_data
                     })

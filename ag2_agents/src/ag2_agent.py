@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(_SCRIPT_DIR, "..", ".."))
 
 from shared_lib.schemas import MCPRequest, MCPResponse, MCPContext
 from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.agents.rag_agent import RAGAgent
 from shared_lib.agents.general_agent import GeneralAgent
 from shared_lib.agents.reddit_agent import RedditAgent
 from shared_lib.agents.yahoo_agent import YahooAgent
@@ -62,6 +63,11 @@ def _make_request(user_query: str, request_id: str) -> MCPRequest:
 
 # ---- Tool functions registered on AG2 agents ---------------------------------
 # Each tool delegates to the corresponding shared agent's run().
+
+def rag_tool(user_query: str) -> str:
+    """Retrieve relevant passages from internal financial filings (no LLM)."""
+    return _wrap_response(RAGAgent().run(_make_request(user_query, "ag2-rag")))
+
 
 def finance_tool(user_query: str) -> str:
     """Analyze internal financial PDFs (RAG) for the given query."""
@@ -113,6 +119,15 @@ def build_finance_agents() -> Dict[str, ConversableAgent]:
     """Construct the cast of AG2 ConversableAgents wrapping the shared agents."""
     cfg = _llm_config()
 
+    rag = ConversableAgent(
+        name="rag",
+        system_message=(
+            "You retrieve passages from internal financial filings (10-K/10-Q). "
+            "Call rag_tool with the user's query and return the passages verbatim."
+        ),
+        llm_config=cfg,
+        human_input_mode="NEVER",
+    )
     finance = ConversableAgent(
         name="finance",
         system_message=(
@@ -160,7 +175,7 @@ def build_finance_agents() -> Dict[str, ConversableAgent]:
         name="coordinator",
         system_message=(
             "You are the routing coordinator. Decide which specialized agents "
-            "should be consulted (finance, yahoo, sec, reddit, general) for the "
+            "should be consulted (rag, finance, yahoo, sec, reddit, general) for the "
             "user query, ask each in turn, then synthesize a final report. "
             "When the analysis is complete, end your message with TERMINATE."
         ),
@@ -180,6 +195,7 @@ def build_finance_agents() -> Dict[str, ConversableAgent]:
 
     # Register tools: caller side declares the schema; executor side runs them.
     for agent, fn in (
+        (rag, rag_tool),
         (finance, finance_tool),
         (yahoo, yahoo_tool),
         (sec, sec_tool),
@@ -192,6 +208,7 @@ def build_finance_agents() -> Dict[str, ConversableAgent]:
     return {
         "coordinator": coordinator,
         "executor": executor,
+        "rag": rag,
         "finance": finance,
         "yahoo": yahoo,
         "sec": sec,
@@ -206,6 +223,7 @@ def run_groupchat(user_query: str, max_round: int = 12) -> MCPResponse:
     members = [
         cast["coordinator"],
         cast["executor"],
+        cast["rag"],
         cast["finance"],
         cast["yahoo"],
         cast["sec"],

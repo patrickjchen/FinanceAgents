@@ -3,98 +3,22 @@ import json
 import re
 from datetime import datetime
 from typing import List, Dict, Any
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
-from llama_index.core.node_parser import SimpleNodeParser
-from shared_lib.embeddings import get_llamaindex_embedding
-from llama_index.core import Settings
-from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.core.postprocessor import SimilarityPostprocessor
 from shared_lib.schemas import MCPRequest, MCPResponse
 from shared_lib.monitor import MonitorAgent
-from llm_settings import make_llm
+from rag_agent import RAGAgent
 
 class FinanceAgent:
+    """Financial analysis over the internal filings (LlamaIndex).
+
+    Retrieval and the vector index belong to RAGAgent; this agent runs the
+    query engine (retrieval + LLM synthesis) and extracts financial metrics
+    from the source passages.
+    """
+
     def __init__(self):
         self.monitor = MonitorAgent()
-
-        # Configure LlamaIndex settings
-        Settings.embed_model = get_llamaindex_embedding()  # cached per process
-        Settings.llm = make_llm(temperature=0.1)
-
-        self.persist_dir = "./working_dir/vector_db/llamaindex_storage"
-        self.raw_data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "raw_data")
-
-        # Initialize or load the vector index
-        self.index = self._get_or_create_index()
-
-        # Create query engine
-        self.query_engine = self.index.as_query_engine(
-            similarity_top_k=3,
-            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)]
-        )
-
-    def _get_or_create_index(self) -> VectorStoreIndex:
-        """Get existing index or create new one from documents"""
-        try:
-            if os.path.exists(self.persist_dir):
-                # Load existing index
-                storage_context = StorageContext.from_defaults(persist_dir=self.persist_dir)
-                index = load_index_from_storage(storage_context)
-                self.monitor.log_health("FinanceAgent", "LOADED", "Vector index loaded from storage")
-                return index
-            else:
-                # Create new index
-                return self._create_new_index()
-        except Exception as e:
-            self.monitor.log_error("FinanceAgent", f"Index initialization failed: {e}")
-            return self._create_new_index()
-
-    def _create_new_index(self) -> VectorStoreIndex:
-        """Create a new vector index from PDF and HTML documents"""
-        try:
-            if not os.path.exists(self.raw_data_dir):
-                raise ValueError(f"Raw data directory not found: {self.raw_data_dir}")
-
-            # Load documents (supports PDF and HTML SEC filings)
-            reader = SimpleDirectoryReader(
-                input_dir=self.raw_data_dir,
-                required_exts=[".pdf", ".htm", ".html"],
-            )
-            documents = reader.load_data()
-
-            if not documents:
-                raise ValueError("No PDF documents found")
-
-            # Add metadata to documents
-            for doc in documents:
-                file_path = doc.metadata.get('file_path', '')
-                file_name = os.path.basename(file_path)
-
-                # Extract company and year from filename
-                base_name = os.path.splitext(file_name)[0]
-                year_match = re.search(r"(20\d{2})", base_name)
-                year = year_match.group(1) if year_match else "Unknown"
-                company = base_name.split("-")[0] if "-" in base_name else base_name
-
-                doc.metadata.update({
-                    "file_name": file_name,
-                    "company": company.lower(),
-                    "year": year
-                })
-
-            # Create index
-            index = VectorStoreIndex.from_documents(documents)
-
-            # Persist index
-            os.makedirs(self.persist_dir, exist_ok=True)
-            index.storage_context.persist(persist_dir=self.persist_dir)
-
-            self.monitor.log_health("FinanceAgent", "CREATED", f"Vector index created with {len(documents)} documents")
-            return index
-
-        except Exception as e:
-            self.monitor.log_error("FinanceAgent", f"Index creation failed: {e}")
-            raise
+        self.rag = RAGAgent()
+        self.query_engine = self.rag.query_engine
 
     def _extract_financial_metrics(self, text: str) -> Dict[str, str]:
         """Extract financial metrics from text using regex patterns"""
@@ -145,7 +69,7 @@ class FinanceAgent:
                     # Create company-specific query
                     company_query = f"Information about {company}: {user_query}"
 
-                    # Query the index
+                    # Query the index (retrieval + synthesis)
                     response = self.query_engine.query(company_query)
 
                     # Extract metrics from source nodes
@@ -197,20 +121,15 @@ class FinanceAgent:
     def get_company_documents(self, company: str) -> List[Dict[str, Any]]:
         """Get all documents related to a specific company"""
         try:
-            # This would require custom filtering in a real implementation
-            # For now, return a basic response
-            query = f"documents related to {company}"
-            response = self.query_engine.query(query)
-
             return [
                 {
-                    "file_name": node.metadata.get('file_name', 'Unknown'),
-                    "company": node.metadata.get('company', company),
-                    "year": node.metadata.get('year', 'Unknown'),
-                    "relevance_score": node.score if hasattr(node, 'score') else None
+                    "file_name": p["file_name"],
+                    "company": p["company"],
+                    "year": p["year"],
+                    "relevance_score": p["score"],
                 }
-                for node in response.source_nodes
+                for p in self.rag.retrieve(f"documents related to {company}", company=company)
             ]
         except Exception as e:
             self.monitor.log_error("FinanceAgent", f"Error getting company documents: {e}")
-            return []
+            return []

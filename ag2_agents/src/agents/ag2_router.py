@@ -61,7 +61,10 @@ class RouterAG2:
 
     async def run_agent(self, agent_name: str, mcp_request: MCPRequest, bg: BackgroundTasks) -> Optional[Any]:
         try:
-            if agent_name == "FinanceAgent":
+            if agent_name == "RAGAgent":
+                from shared_lib.agents.rag_agent import RAGAgent
+                agent_class = RAGAgent
+            elif agent_name == "FinanceAgent":
                 from shared_lib.agents.finance_agent import FinanceAgent
                 agent_class = FinanceAgent
             elif agent_name == "YahooAgent":

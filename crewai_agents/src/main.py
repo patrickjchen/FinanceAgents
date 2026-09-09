@@ -81,6 +81,7 @@ async def get_query_response(query: str) -> dict:
                 agent_key_map = {
                     "reddit": "RedditAgent",
                     "finance": "FinanceAgent",
+                    "rag": "RAGAgent",
                     "yahoo": "YahooAgent",
                     "sec": "SecAgent",
                 }

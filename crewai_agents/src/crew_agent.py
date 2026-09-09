@@ -2,6 +2,7 @@ from crewai import Agent, Task, Crew
 from crewai.tools import tool
 from shared_lib.schemas import MCPRequest, MCPResponse
 from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.agents.rag_agent import RAGAgent
 from shared_lib.agents.general_agent import GeneralAgent
 from shared_lib.agents.reddit_agent import RedditAgent
 from shared_lib.agents.yahoo_agent import YahooAgent
@@ -9,6 +10,11 @@ from shared_lib.agents.sec_agent import SECAgent
 from datetime import datetime
 
 # Define Tool functions using CrewAI @tool decorator
+@tool
+def rag_tool(user_query: str) -> str:
+    """Run RAGAgent: retrieve relevant passages from internal financial filings"""
+    return RAGAgent().run(MCPRequest(request_id="crew-rag", context={"user_query": user_query}))
+
 @tool
 def finance_tool(user_query: str) -> str:
     """Run FinanceAgent using a user query"""
@@ -35,6 +41,14 @@ def reddit_tool(user_query: str) -> str:
     return RedditAgent().run(MCPRequest(request_id="crew-reddit", context={"user_query": user_query}))
 
 # Define CrewAI agents
+rag_agent = Agent(
+    name="rag",
+    role="Document retriever",
+    goal="Retrieve the most relevant passages from internal financial filings",
+    backstory="A research librarian who finds the exact filing passages that answer a question.",
+    tools=[rag_tool]
+)
+
 finance_agent = Agent(
     name="finance",
     role="Financial analyst",
@@ -79,6 +93,7 @@ reddit_agent = Agent(
 def build_tasks(mcp_request: MCPRequest):
     query = mcp_request.context.user_query
     return [
+        Task(description=f"Retrieve internal filing passages for query: {query}", expected_output="JSON list of passages", agent=rag_agent, tools=[rag_tool]),
         Task(description=f"Summarize internal financial PDFs for query: {query}", expected_output="JSON summary", agent=finance_agent, tools=[finance_tool]),
         Task(description=f"Answer general question: {query}", expected_output="General answer", agent=general_agent, tools=[general_tool]),
         Task(description=f"Summarize Reddit sentiment about: {query}", expected_output="Reddit analysis", agent=reddit_agent, tools=[reddit_tool]),
@@ -88,7 +103,7 @@ def build_tasks(mcp_request: MCPRequest):
 
 # Main CrewAI runner that returns MCPResponse
 def build_crew():
-    return Crew(name="FinanceAgents Crew", agents=[finance_agent, general_agent, yahoo_agent, sec_agent, reddit_agent], tasks=[])
+    return Crew(name="FinanceAgents Crew", agents=[rag_agent, finance_agent, general_agent, yahoo_agent, sec_agent, reddit_agent], tasks=[])
 
 def run_crew(mcp_request: MCPRequest) -> MCPResponse:
     crew = build_crew()

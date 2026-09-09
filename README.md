@@ -93,7 +93,8 @@ All implementations use these specialized agents:
 
 | Agent | Purpose | Data Source |
 |-------|---------|-------------|
-| **FinanceAgent** | Analyze internal financial documents | PDF documents via RAG/Vector DB |
+| **RAGAgent** | Retrieve relevant passages from internal filings | PDF/HTML filings via Vector DB (no LLM) |
+| **FinanceAgent** | Analyze internal financial documents | Passages from RAGAgent + LLM summary |
 | **YahooAgent** | Real-time stock data and metrics | Yahoo Finance API |
 | **SECAgent** | Regulatory filings and compliance | SEC EDGAR API |
 | **RedditAgent** | Market sentiment analysis | Reddit API (r/stocks, r/investing) |

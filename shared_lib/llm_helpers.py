@@ -4,6 +4,7 @@ from shared_lib.llm_config import get_llm_client, get_llm_model
 AGENT_TIPS = {
     "reddit": "Reddit agent response is related to stock market topics on social media with sentiment analysis.",
     "finance": "Finance agent response is about company's info from internal financial docs.",
+    "rag": "RAG agent response is the raw passages retrieved from the company's internal financial filings (10-K/10-Q), with file name, year and relevance score.",
     "yahoo": "Yahoo agent response is about statistic data and summary based on real time stock price per company in last 30 days.",
     "sec": "SEC agent response is about public company's financial info from SEC files."
 }

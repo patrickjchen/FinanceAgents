@@ -11,6 +11,7 @@ import json
 from fastapi import APIRouter, BackgroundTasks
 from shared_lib.schemas import MCPRequest, MCPResponse, MCPContext
 from shared_lib.agents.finance_agent import FinanceAgent
+from shared_lib.agents.rag_agent import RAGAgent
 from shared_lib.agents.yahoo_agent import YahooAgent
 from shared_lib.agents.sec_agent import SECAgent
 from shared_lib.agents.reddit_agent import RedditAgent
@@ -58,7 +59,11 @@ class RouterAgent:
     async def run_agent(self, agent_name: str, mcp_request: MCPRequest, bg: BackgroundTasks):
         """Run an agent with error handling"""
         try:
-            if agent_name == "FinanceAgent":
+            if agent_name == "RAGAgent":
+                agent = RAGAgent()
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(None, agent.run, mcp_request)
+            elif agent_name == "FinanceAgent":
                 agent = FinanceAgent()
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, agent.run, mcp_request)
