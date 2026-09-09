@@ -28,6 +28,7 @@ FinanceAgents/
 ├── crewai_agents/         # CrewAI implementation
 ├── langchain_agents/      # LangChain implementation
 ├── ag2_agents/            # AG2 (formerly AutoGen) implementation
+├── frontend/              # Next.js web UI (chat over any backend's POST /query)
 ├── shared_lib/            # Shared agents, schemas, and utilities
 ├── config/                # Configuration data files
 ├── raw_data/              # Financial PDF documents
@@ -84,6 +85,18 @@ env $(cat ../.env) python src/main.py
 ```
 
 See each implementation's README for specific setup instructions.
+
+### Web UI (optional)
+
+`frontend/` is a Next.js chat UI that posts to any running backend's `POST /query` and renders each agent's summary. With a backend running (LangChain on port 8000 by default):
+
+```bash
+cd frontend
+npm ci
+npm run dev          # http://localhost:3000
+```
+
+Set `NEXT_PUBLIC_API_URL` (see `frontend/.env.example`) to target another implementation's port. Details in `frontend/README.md`.
 
 ## 🏗️ Common Architecture
 
